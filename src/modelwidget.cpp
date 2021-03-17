@@ -1,6 +1,7 @@
 #include "modelwidget.h"
 
-ModelWidget::ModelWidget(QWidget *parent, int modelWidth, int modelHeight) : QVTKWidget(parent), modelWidth(modelWidth), modelHeight(modelHeight) {
+ModelWidget::ModelWidget(QVTKOpenGLNativeWidget *parent, int modelWidth, int modelHeight) 
+    : QVTKOpenGLNativeWidget(parent), modelWidth(modelWidth), modelHeight(modelHeight) {
 
     /* creating visualization pipeline which basically looks like this:
      vtkPoints -> vtkPolyData -> vtkPolyDataMapper -> vtkActor -> vtkRenderer */
@@ -51,14 +52,11 @@ ModelWidget::ModelWidget(QWidget *parent, int modelWidth, int modelHeight) : QVT
     light2->SetLightTypeToSceneLight();
     renderer->AddLight(light2);
 
-    modelMapper->SetInput(polyData);
-    /* immediate render mode faster/better for large datasets */
-    modelMapper->ImmediateModeRenderingOn();
+    modelMapper->SetInputData(polyData);
     renderer->SetBackground(.45, .45, .9);
     renderer->SetBackground2(.0, .0, .0);
     renderer->GradientBackgroundOn();
-    renderWindow = GetRenderWindow();
-    renderWindow->AddRenderer(renderer);
+    renderWindow()->AddRenderer(renderer);
     modelActor->SetMapper(modelMapper);
     
     /* setting some properties to make it look just right */
@@ -124,7 +122,7 @@ void ModelWidget::exportModel() {
     
     if (ext.compare("ply") == 0) {
         vtkSmartPointer<vtkPLYWriter> plyExporter = vtkSmartPointer<vtkPLYWriter>::New();
-        plyExporter->SetInput(polyData);
+        plyExporter->SetInputData(polyData);
         plyExporter->SetFileName(filename.toStdString().c_str());
         plyExporter->SetColorModeToDefault();
         plyExporter->SetArrayName("Colors");
@@ -132,13 +130,13 @@ void ModelWidget::exportModel() {
         plyExporter->Write();
     } else if (ext.compare("obj") == 0) {
         vtkSmartPointer<vtkOBJExporter> objExporter = vtkSmartPointer<vtkOBJExporter>::New();
-        objExporter->SetInput(renderWindow);
+        objExporter->SetInput(renderWindow());
         objExporter->SetFilePrefix(filename.toStdString().c_str());
         objExporter->Update();
         objExporter->Write();
     } else {
         vtkSmartPointer<vtkSTLWriter> stlExporter = vtkSmartPointer<vtkSTLWriter>::New();
-        stlExporter->SetInput(polyData);
+        stlExporter->SetInputData(polyData);
         stlExporter->SetFileName(filename.toStdString().c_str());
         stlExporter->SetFileTypeToBinary();
         stlExporter->Update();

@@ -24,18 +24,17 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include <QVTKWidget.h>
+#include <QWidget>
+#include <QVTKOpenGLNativeWidget.h>
 
-class NormalsWidget : public QVTKWidget {
+class NormalsWidget : public QVTKOpenGLNativeWidget {
         
 public:
-    NormalsWidget(QWidget *parent = 0, int width=0, int height=0);
+    NormalsWidget(QVTKOpenGLNativeWidget *parent = 0, int width=0, int height=0);
     ~NormalsWidget();
     void setNormalsImage(cv::Mat img);
     
 private:
-    /** vtk render window */
-    vtkSmartPointer<vtkRenderWindow> renderWindow;
     /** vtk renderer */
     vtkSmartPointer<vtkRenderer> renderer;
     /** vtk image actor for displaying the current frame */

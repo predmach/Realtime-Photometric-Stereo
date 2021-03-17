@@ -10,7 +10,7 @@
 #include <QtCore/QString>
 #include <QtCore>
 #include <QFuture>
-#include <QMutex>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>

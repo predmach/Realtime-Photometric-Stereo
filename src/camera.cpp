@@ -1,4 +1,5 @@
 #include "camera.h"
+#include <opencv2/calib3d.hpp>
 
 Camera::Camera() {
 
@@ -39,12 +40,12 @@ Camera::Camera() {
     /* loading images for test mode */
     std::stringstream s;
     s << PATH_ASSETS << "butterfly/image_ambient.png";
-    ambientImage = cv::imread(s.str(), CV_LOAD_IMAGE_GRAYSCALE);
+    ambientImage = cv::imread(s.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
     avgImgIntensity = cv::mean(ambientImage)[0];
     for (int i=0; i<8; i++) {
         std::stringstream s;
         s << PATH_ASSETS << "butterfly/image" << i << ".png";
-        cv::Mat img = cv::imread(s.str(), CV_LOAD_IMAGE_GRAYSCALE);
+        cv::Mat img = cv::imread(s.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
         cv::GaussianBlur(img, img, cv::Size(3,3), 1.2);
         testImages.push_back(img);
     }

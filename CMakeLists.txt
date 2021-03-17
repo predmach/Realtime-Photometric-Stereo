@@ -6,15 +6,11 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 
 # required packages
-FIND_PACKAGE(Qt4 REQUIRED)
+FIND_PACKAGE(Qt5 COMPONENTS Widgets REQUIRED Gui REQUIRED)
 FIND_PACKAGE(VTK REQUIRED)
 FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(DC1394 REQUIRED)
 FIND_PACKAGE(OPENCL REQUIRED)
-
-# required macros and variables
-INCLUDE(${VTK_USE_FILE})
-INCLUDE(${QT_USE_FILE})
 
 # ignore deprecated OpenCL 1.1 headers warning
 ADD_DEFINITIONS(-DCL_USE_DEPRECATED_OPENCL_1_1_APIS)
@@ -34,7 +30,7 @@ SET(IMG_WIDTH 640)
 CONFIGURE_FILE(src/config.h.in ${CMAKE_SOURCE_DIR}/src/config.h)
 
 # compiling qt gui (qmake) and adding resource files
-QT4_WRAP_CPP(main_headers_moc 
+QT5_WRAP_CPP(main_headers_moc 
 			src/mainwindow.h
             src/camera.h
             src/camerawidget.h
@@ -49,4 +45,4 @@ ADD_EXECUTABLE(main ${SOURCES} ${main_headers_moc})
 
 LINK_LIBRARIES(${QT_LIBRARIES})
 LINK_LIBRARIES(${VTK_LIBRARIES})
-TARGET_LINK_LIBRARIES(main ${DC1394_LIBRARIES} ${OPENCL_LIBRARIES} ${OpenCV_LIBS} QVTK vtkHybrid)
+TARGET_LINK_LIBRARIES(main ${DC1394_LIBRARIES} ${OPENCL_LIBRARIES} ${OpenCV_LIBS} Qt5::Widgets Qt5::Gui ${VTK_LIBRARIES})

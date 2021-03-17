@@ -1,12 +1,10 @@
 #include "normalswidget.h"
 
-NormalsWidget::NormalsWidget(QWidget *parent, int width, int height) : QVTKWidget(parent) {
+NormalsWidget::NormalsWidget(QVTKOpenGLNativeWidget *parent, int width, int height) : QVTKOpenGLNativeWidget(parent) {
 
-    renderWindow = GetRenderWindow();
-
-    renderWindow->SetNumberOfLayers(1);
+    renderWindow()->SetNumberOfLayers(1);
     renderer = vtkSmartPointer<vtkRenderer>::New();
-    renderWindow->AddRenderer(renderer);
+    renderWindow()->AddRenderer(renderer);
     renderer->SetLayer(0);
     renderer->InteractiveOff();
 
@@ -38,11 +36,12 @@ void NormalsWidget::setupRenderLayer(int width, int height) {
     importer->Update();
 
     imgActor = vtkSmartPointer<vtkImageActor>::New();
-    imgActor->SetInput(imgData);
+    imgActor->SetInputData(imgData);
 
     /* setup orthogonal camera projection */
     vtkSmartPointer<vtkCamera> orthoCam = renderer->GetActiveCamera();
     orthoCam->ParallelProjectionOn();
+
     double origin[3];
     double spacing[3];
     int extent[6];
@@ -67,6 +66,8 @@ void NormalsWidget::setupRenderLayer(int width, int height) {
     orthoCam->SetPosition(xc,yc,d);
 
     renderer->AddActor(imgActor);
+    renderer->SetBackground(1,1,1);
+    renderer->ResetCamera();
 }
 
 void NormalsWidget::setNormalsImage(cv::Mat img) {
@@ -78,5 +79,6 @@ void NormalsWidget::setNormalsImage(cv::Mat img) {
 
     importer->SetImportVoidPointer(img.data);
     importer->Modified();
-    update();
+    importer->Update();
+    renderWindow()->Render();
 }

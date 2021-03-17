@@ -13,10 +13,10 @@ void Calibration::withFourPlanes() {
         s2 << PATH_ASSETS << "inclinedPlane/left-high/image" << i << ".png";
         s3 << PATH_ASSETS << "inclinedPlane/right-high/image" << i << ".png";
         s4 << PATH_ASSETS << "inclinedPlane/up-high/image" << i << ".png";
-        cv::Mat img1 = cv::imread(s1.str(), CV_LOAD_IMAGE_GRAYSCALE);
-        cv::Mat img2 = cv::imread(s2.str(), CV_LOAD_IMAGE_GRAYSCALE);
-        cv::Mat img3 = cv::imread(s3.str(), CV_LOAD_IMAGE_GRAYSCALE);
-        cv::Mat img4 = cv::imread(s4.str(), CV_LOAD_IMAGE_GRAYSCALE);
+        cv::Mat img1 = cv::imread(s1.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
+        cv::Mat img2 = cv::imread(s2.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
+        cv::Mat img3 = cv::imread(s3.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
+        cv::Mat img4 = cv::imread(s4.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
         
         /* using cropped images as provided by camera class */
         assert(img1.rows == IMG_HEIGHT && img1.cols == IMG_HEIGHT);

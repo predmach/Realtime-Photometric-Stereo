@@ -3,23 +3,24 @@
 
 #include <QMetaType>
 #include <QThread>
-#include <QtGui/QMainWindow>
-#include <QtGui/QWidget>
-#include <QtGui/QMenu>
-#include <QtGui/QGroupBox>
-#include <QtGui/QGridLayout>
-#include <QtGui/QHBoxLayout>
-#include <QtGui/QStatusBar>
-#include <QtGui/QRadioButton>
-#include <QtGui/QPushButton>
-#include <QtGui/QCheckBox>
-#include <QtGui/QSlider>
-#include <QtGui/QDoubleSpinBox>
+#include <QMainWindow>
+#include <QWidget>
+#include <QMenu>
+#include <QGroupBox>
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QStatusBar>
+#include <QRadioButton>
+#include <QPushButton>
+#include <QCheckBox>
+#include <QSlider>
+#include <QDoubleSpinBox>
 #include <QtCore/QTimer>
 #include <QtCore/QString>
 #include <QLabel>
 #include <QSizePolicy>
-#include <QVTKWidget.h>
+#include <QWidget>
+#include <QVTKOpenGLNativeWidget.h>
 
 #include "camera.h"
 #include "camerawidget.h"
@@ -46,7 +47,8 @@ private slots:
 private:
     void createInterface();
     
-    QWidget *centralWidget;
+    vtkSmartPointer<vtkRenderWindow> renderWindow;
+    QVTKOpenGLNativeWidget *centralWidget;
     QGridLayout *gridLayout, *radioButtonsLayout, *paramsLayout;
     QLabel *maxpqLabel, *lambdaLabel, *muLabel, *minIntensLabel, *unsharpNormsLabel;
     QDoubleSpinBox *maxpqSpinBox, *lambdaSpinBox, *muSpinBox;

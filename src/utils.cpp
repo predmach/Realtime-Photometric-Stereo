@@ -81,7 +81,7 @@ int Utils::diplayLightDirections() {
     grid->GetPointData()->SetVectors(vectors);
     
     /* create vtk renderpipeline */
-    hedgehog->SetInput(grid);
+    hedgehog->SetInputData(grid);
     hedgehog->SetScaleFactor(5);
     gridMapper->SetInputConnection(hedgehog->GetOutputPort());
     gridActor->SetMapper(gridMapper);

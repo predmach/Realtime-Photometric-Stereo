@@ -72,8 +72,14 @@ MainWindow::~MainWindow() {
 void MainWindow::createInterface() {
 
     /** building UI **/
-    centralWidget = new QWidget(this);
-    gridLayout = new QGridLayout(centralWidget);
+    centralWidget = new QVTKOpenGLNativeWidget(this);
+    renderWindow = centralWidget->renderWindow();
+    auto renderer = vtkSmartPointer<vtkRenderer>::New();
+    renderWindow->AddRenderer(renderer);
+    renderer->SetBackground(1,1,1);
+
+    gridLayout = new QGridLayout();
+    centralWidget->setLayout(gridLayout);
 
     /* camera preview */
     camWidget = new CameraWidget(centralWidget, camera->width, camera->height);
@@ -83,8 +89,7 @@ void MainWindow::createInterface() {
     /* surface normals */
     normalsWidget = new NormalsWidget(centralWidget, camera->width, camera->height);
     normalsWidget->setMinimumWidth(300);
-    /* initially 3d reconstruction will be displayed */
-    normalsWidget->hide();
+    normalsWidget->hide(); // initially 3d reconstruction will be displayed
     gridLayout->addWidget(normalsWidget, 0, 1);
 
     /* 3D reconstruction */
@@ -129,7 +134,7 @@ void MainWindow::createInterface() {
     /* add settings to adjust ps parameter and export 3d model */
     paramsGroupBox = new QGroupBox("PS parameters", centralWidget);
     paramsLayout = new QGridLayout(paramsGroupBox);
-    
+
     maxpqLabel = new QLabel("max<sub>pq</sub>", paramsGroupBox);
     maxpqSpinBox = new QDoubleSpinBox(paramsGroupBox);
     maxpqSpinBox->setRange(0, 200);

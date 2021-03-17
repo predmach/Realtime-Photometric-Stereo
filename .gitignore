@@ -27,3 +27,5 @@ build/
 
 # OSX trash
 .DS_Store
+
+.vscode/

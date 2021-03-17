@@ -12,26 +12,25 @@
 #include <vtkMatrixToHomogeneousTransform.h>
 #include <vtkMatrix4x4.h>
 
-#include <QVTKWidget.h>
+#include <QWidget>
+#include <QVTKOpenGLNativeWidget.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 
-class CameraWidget : public QVTKWidget {
+class CameraWidget : public QVTKOpenGLNativeWidget {
     Q_OBJECT
 
 public:
-    CameraWidget(QWidget *parent = 0, int width=0, int height=0);
+    CameraWidget(QVTKOpenGLNativeWidget *parent = 0, int width=0, int height=0);
     ~CameraWidget();
 
 public slots:
     void setImage(cv::Mat image);
 
 private:
-    /** vtk render window */
-    vtkSmartPointer<vtkRenderWindow> renderWindow;
     /** vtk renderer */
     vtkSmartPointer<vtkRenderer> renderer;
     /** vtk image actor for displaying the current frame */

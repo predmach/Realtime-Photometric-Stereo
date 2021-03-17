@@ -1,19 +1,16 @@
 #include "camerawidget.h"
 
-CameraWidget::CameraWidget(QWidget *parent, int width, int height) : QVTKWidget(parent) {
+CameraWidget::CameraWidget(QVTKOpenGLNativeWidget *parent, int width, int height) : QVTKOpenGLNativeWidget(parent) {
 
-    renderWindow = GetRenderWindow();
-
-    SetRenderWindow(renderWindow);
-    renderWindow->SetNumberOfLayers(1);
     renderer = vtkSmartPointer<vtkRenderer>::New();
-    renderWindow->AddRenderer(renderer);
     renderer->SetLayer(0);
     renderer->InteractiveOff();
+    renderWindow()->AddRenderer(renderer);
+    renderWindow()->SetNumberOfLayers(1);
 
     cv::Mat tmpFrame(height, width, CV_8UC1, cv::Scalar::all(0));
     setup(tmpFrame);
-    renderWindow->Render();
+    renderWindow()->Render();
 }
 
 CameraWidget::~CameraWidget() {
@@ -37,7 +34,7 @@ void CameraWidget::setup(cv::Mat& image) {
     importer->Update();
 
     imgActor = vtkSmartPointer<vtkImageActor>::New();
-    imgActor->SetInput(imgData);
+    imgActor->SetInputData(imgData);
 
     /* set up the orthogonal camera for the video layer */
     vtkSmartPointer<vtkCamera> orthoCam = renderer->GetActiveCamera();
@@ -68,6 +65,8 @@ void CameraWidget::setup(cv::Mat& image) {
     orthoCam->SetPosition(xc,yc,d);
 
     renderer->AddActor(imgActor);
+    renderer->SetBackground(1,1,1);
+    renderer->ResetCamera();
 
 }
 
@@ -75,5 +74,6 @@ void CameraWidget::setImage(cv::Mat image) {
 
     importer->SetImportVoidPointer(image.data);
     importer->Modified();
-    update();
+    importer->Update();
+    renderWindow()->Render();
 }
