@@ -13,6 +13,7 @@
 #include <QRadioButton>
 #include <QPushButton>
 #include <QCheckBox>
+#include <QPushButton>
 #include <QSlider>
 #include <QDoubleSpinBox>
 #include <QtCore/QTimer>
@@ -23,6 +24,7 @@
 #include <QVTKOpenGLNativeWidget.h>
 
 #include "camera.h"
+#include "rs_cam.h"
 #include "camerawidget.h"
 #include "modelwidget.h"
 #include "normalswidget.h"
@@ -57,9 +59,12 @@ private:
     QPushButton *exportButton, *toggleSettingsButton;
     QRadioButton *normalsRadioButton, *surfaceRadioButton;
     QCheckBox *testModeCheckBox;
+    QPushButton *calibrateButton;
+
     QThread *camThread;
     
-    Camera *camera;
+    // Camera *camera;
+    RsCam *camera;
     CameraWidget *camWidget;
     ModelWidget *modelWidget;
     NormalsWidget *normalsWidget;

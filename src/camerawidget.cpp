@@ -8,7 +8,7 @@ CameraWidget::CameraWidget(QVTKOpenGLNativeWidget *parent, int width, int height
     renderWindow()->AddRenderer(renderer);
     renderWindow()->SetNumberOfLayers(1);
 
-    cv::Mat tmpFrame(height, width, CV_8UC1, cv::Scalar::all(0));
+    cv::Mat tmpFrame(height, width, CV_8UC3, cv::Scalar::all(0));
     setup(tmpFrame);
     renderWindow()->Render();
 }
@@ -62,16 +62,15 @@ void CameraWidget::setup(cv::Mat& image) {
 
     orthoCam->SetUserTransform(videoFlip);
     orthoCam->SetFocalPoint(xc,yc,0.0);
-    orthoCam->SetPosition(xc,yc,d);
+    orthoCam->SetPosition(xc,yc,d/4);
 
     renderer->AddActor(imgActor);
     renderer->SetBackground(1,1,1);
-    renderer->ResetCamera();
+//    renderer->ResetCamera();
 
 }
 
 void CameraWidget::setImage(cv::Mat image) {
-
     importer->SetImportVoidPointer(image.data);
     importer->Modified();
     importer->Update();

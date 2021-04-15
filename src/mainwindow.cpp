@@ -7,7 +7,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     qRegisterMetaType< std::vector<cv::Mat> >("std::vector<cv::Mat>");
 
     /* setup camera */
-    camera = new Camera();
+    camera = new RsCam(); // Camera();
     bool camFound = camera->open(0);
     if (!camFound) {
         /* no camera, forcing test mode */
@@ -15,14 +15,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     } else {
         /* reset camera registers and start led ringlight */
         camera->reset();
-        camera->printStatus();
+        // camera->printStatus();
     }
     
     camThread = new QThread;
     camera->moveToThread(camThread);
         
     /* creating photometric stereo process */
-    ps = new PhotometricStereo(camera->width, camera->height, camera->avgImageIntensity());
+    ps = new PhotometricStereo(camera->m_rgb_width, camera->m_rgb_height, camera->avgImageIntensity());
 
     /* setup ui */
     setWindowTitle("Realtime Photometric-Stereo");
@@ -38,7 +38,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     /* connecting camera with camerawidget and ps process */
     connect(camera, SIGNAL(newCamFrame(cv::Mat)), camWidget, SLOT(setImage(cv::Mat)), Qt::AutoConnection);
     /* invoking ps setImage slot immediately, when the signal is emitted to ensure image order */
-    connect(camera, SIGNAL(newCroppedFrame(cv::Mat)), ps, SLOT(setImage(cv::Mat)), Qt::DirectConnection);
+//    connect(camera, SIGNAL(newCroppedFrame(cv::Mat)), ps, SLOT(setImage(cv::Mat)), Qt::DirectConnection);
     
     /* connecting ps process with mainwindow and modelwidget */
     connect(ps, SIGNAL(executionTime(QString)), this, SLOT(setStatusMessage(QString)), Qt::AutoConnection);
@@ -46,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     
     /* start camera in separate thread with high priority */
     camThread->start();
-    camThread->setPriority(QThread::TimeCriticalPriority);
+//    camThread->setPriority(QThread::TimeCriticalPriority);
 }
 
 MainWindow::~MainWindow() {
@@ -82,18 +82,18 @@ void MainWindow::createInterface() {
     centralWidget->setLayout(gridLayout);
 
     /* camera preview */
-    camWidget = new CameraWidget(centralWidget, camera->width, camera->height);
+    camWidget = new CameraWidget(centralWidget, camera->m_rgb_width, camera->m_rgb_height);
     camWidget->setMinimumSize(320, 240);
     gridLayout->addWidget(camWidget, 0, 0);
 
     /* surface normals */
-    normalsWidget = new NormalsWidget(centralWidget, camera->width, camera->height);
+    normalsWidget = new NormalsWidget(centralWidget, camera->m_rgb_width, camera->m_rgb_height);
     normalsWidget->setMinimumWidth(300);
     normalsWidget->hide(); // initially 3d reconstruction will be displayed
     gridLayout->addWidget(normalsWidget, 0, 1);
 
     /* 3D reconstruction */
-    modelWidget = new ModelWidget(centralWidget, camera->width, camera->height);
+    modelWidget = new ModelWidget(centralWidget, camera->m_rgb_width, camera->m_rgb_height);
     modelWidget->setMinimumWidth(300);
     gridLayout->addWidget(modelWidget, 0, 1);
 
@@ -110,6 +110,12 @@ void MainWindow::createInterface() {
 
     gridLayout->addLayout(radioButtonsLayout, 1, 1);
 
+    QGridLayout* cameraButtonsLayout = new QGridLayout();
+
+    calibrateButton = new QPushButton("Calibrate");
+    connect(calibrateButton, SIGNAL(released()), camera, SLOT(calibrate()));
+    cameraButtonsLayout->addWidget(calibrateButton, 0, 0);
+
     /* test modus using 8 prev taken photos */
     testModeCheckBox = new QCheckBox("Test/Presentation mode");
     connect(testModeCheckBox, SIGNAL(stateChanged(int)), this, SLOT(onTestModeChecked(int)));
@@ -118,7 +124,9 @@ void MainWindow::createInterface() {
         testModeCheckBox->setChecked(true);
         testModeCheckBox->setDisabled(true);
     }
-    gridLayout->addWidget(testModeCheckBox, 1, 0);
+    cameraButtonsLayout->addWidget(testModeCheckBox, 0, 1);
+
+    gridLayout->addLayout(cameraButtonsLayout, 1, 0);
     
     /* toggle settings button */
     toggleSettingsButton = new QPushButton("Show settings menu", centralWidget);
