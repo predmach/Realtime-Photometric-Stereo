@@ -30,10 +30,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     statusBar()->setStyleSheet("font-size:12px;font-weight:bold;");
 
     /* connecting camera with attached thread */
-    // connect(camThread, SIGNAL(started()), camera, SLOT(start()));
-    // connect(camera, SIGNAL(stopped()), camThread, SLOT(quit()));
-    // connect(camera, SIGNAL(stopped()), camera, SLOT(deleteLater()));
-    // connect(camThread, SIGNAL(finished()), camThread, SLOT(deleteLater()));
+    connect(camThread, SIGNAL(started()), camera, SLOT(start()));
+    connect(camera, SIGNAL(stopped()), camThread, SLOT(quit()));
+    connect(camera, SIGNAL(stopped()), camera, SLOT(deleteLater()));
+    connect(camThread, SIGNAL(finished()), camThread, SLOT(deleteLater()));
     
     /* connecting camera with camerawidget and ps process */
     connect(camera, SIGNAL(newCamFrame(cv::Mat)), camWidget, SLOT(setImage(cv::Mat)), Qt::AutoConnection);
@@ -135,6 +135,12 @@ void MainWindow::createInterface() {
     lightButton = new QPushButton("Send Light");
     connect(lightButton, SIGNAL(pressed()), camera, SLOT(sendlight()));
     cameraButtonsLayout->addWidget(lightButton, 1, 0);
+    //-------------------------------------------
+    QSpinBox * spinbox;
+
+    spinbox = new QSpinBox();
+    spinbox->setValue(0);// example of using a pointer to edit its states
+    cameraButtonsLayout->addWidget(spinbox, 1, 0);
     //-------------------------------------------
     gridLayout->addLayout(cameraButtonsLayout, 1, 0);
     

@@ -369,7 +369,6 @@ void RsCam::screenshotwithLight() {
         rs2::frame color_frame = frames.get_color_frame();
         Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
         Mat gray = Mat(color.rows, color.cols, CV_8UC1);
-        std::cout << saveimage <<std::endl;
         if (saveimage)
         {
             std::string filename = std::to_string(i) + ".png";
@@ -395,5 +394,4 @@ void RsCam::sendlight()
     std::cout<<currentLight<<std::endl;
     lighting(currentLight, 255);
    
-
 }
