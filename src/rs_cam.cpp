@@ -366,8 +366,6 @@ void RsCam::msleep(unsigned long msecs) {
 void RsCam::screenshotwithLight() {
     rs2::frameset frames;
     bool saved_ambient = false;
-    //saveimage = true;
-
     for (int i=0; i<5; i++) 
     {
         frames = m_pipe.wait_for_frames();
