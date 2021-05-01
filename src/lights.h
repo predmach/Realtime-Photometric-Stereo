@@ -25,6 +25,7 @@ private:
     boost::asio::serial_port serial_port;
 
     QTimer *lightTimer;
+    
 
 };
 

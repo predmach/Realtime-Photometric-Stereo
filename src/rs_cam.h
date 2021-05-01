@@ -18,7 +18,8 @@
 #include <string>
 #include <mutex>
 
-#include "boost/asio.hpp"
+#include <boost/asio.hpp>
+//#include "boost/asio.hpp"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -53,6 +54,7 @@ public:
     int m_depth_width;
     int m_depth_height;
     int m_fps;
+    int lighid = 0;
 
 public slots:
     void start();
@@ -62,6 +64,9 @@ private slots:
     void lights_off();
     void lights_on();
     void calibrate();
+    void screenshotwithLight();
+    void save_image();
+    void sendlight();
 
 signals:
     void newCamFrame(cv::Mat frame);
@@ -75,13 +80,14 @@ private:
     std::mutex serial_lock;
 
     bool isCalibrating=false;
+    bool saveimage = false;
     cv::Vec3i calibrationTarget;
     cv::Mat calibrationImages[8];
 
     QTimer *lightTimer;
 //    Lights *lights;
     int currentLight=0;
-    int num_lights=8;
+    int num_lights=77;
 
     int numCams;
 
@@ -116,6 +122,7 @@ private:
 
     /* Own implementation of sleep, processing all qt events while sleeping/waiting */
     void msleep(unsigned long msecs);
+    
 };
 
 #endif

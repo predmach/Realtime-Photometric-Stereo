@@ -30,10 +30,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     statusBar()->setStyleSheet("font-size:12px;font-weight:bold;");
 
     /* connecting camera with attached thread */
-    connect(camThread, SIGNAL(started()), camera, SLOT(start()));
-    connect(camera, SIGNAL(stopped()), camThread, SLOT(quit()));
-    connect(camera, SIGNAL(stopped()), camera, SLOT(deleteLater()));
-    connect(camThread, SIGNAL(finished()), camThread, SLOT(deleteLater()));
+    // connect(camThread, SIGNAL(started()), camera, SLOT(start()));
+    // connect(camera, SIGNAL(stopped()), camThread, SLOT(quit()));
+    // connect(camera, SIGNAL(stopped()), camera, SLOT(deleteLater()));
+    // connect(camThread, SIGNAL(finished()), camThread, SLOT(deleteLater()));
     
     /* connecting camera with camerawidget and ps process */
     connect(camera, SIGNAL(newCamFrame(cv::Mat)), camWidget, SLOT(setImage(cv::Mat)), Qt::AutoConnection);
@@ -43,6 +43,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     /* connecting ps process with mainwindow and modelwidget */
     connect(ps, SIGNAL(executionTime(QString)), this, SLOT(setStatusMessage(QString)), Qt::AutoConnection);
     connect(ps, SIGNAL(modelFinished(std::vector<cv::Mat>)), this, SLOT(onModelFinished(std::vector<cv::Mat>)), Qt::AutoConnection);
+
     
     /* start camera in separate thread with high priority */
     camThread->start();
@@ -82,6 +83,7 @@ void MainWindow::createInterface() {
     centralWidget->setLayout(gridLayout);
 
     /* camera preview */
+    std::cout <<camera->m_rgb_width<<std::endl;
     camWidget = new CameraWidget(centralWidget, camera->m_rgb_width, camera->m_rgb_height);
     camWidget->setMinimumSize(320, 240);
     gridLayout->addWidget(camWidget, 0, 0);
@@ -125,7 +127,15 @@ void MainWindow::createInterface() {
         testModeCheckBox->setDisabled(true);
     }
     cameraButtonsLayout->addWidget(testModeCheckBox, 0, 1);
-
+    //-------------------------------------------
+    screenshotButton = new QPushButton("Capture Data");
+    connect(screenshotButton, SIGNAL(pressed()), camera, SLOT(save_image()));
+    cameraButtonsLayout->addWidget(screenshotButton, 0, 2);
+    //-------------------------------------------
+    lightButton = new QPushButton("Send Light");
+    connect(lightButton, SIGNAL(pressed()), camera, SLOT(sendlight()));
+    cameraButtonsLayout->addWidget(lightButton, 1, 0);
+    //-------------------------------------------
     gridLayout->addLayout(cameraButtonsLayout, 1, 0);
     
     /* toggle settings button */

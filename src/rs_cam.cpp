@@ -137,7 +137,8 @@ void RsCam::start() {
 //    connect(eventLoopTimer, SIGNAL(timeout()), this, SLOT(captureFrame()));
 //    connect(this, SIGNAL(stopped()), eventLoopTimer, SLOT(stop()));
 //    eventLoopTimer->start(1000); ///m_fps);
-    QTimer::singleShot(200, this, &RsCam::captureFrame);
+    screenshotwithLight();
+    //QTimer::singleShot(200, this, &RsCam::captureFrame);
 }
 
 void RsCam::stop() {
@@ -213,18 +214,19 @@ void RsCam::captureAmbientImage() {
             int radius = c[2];
             circle(color, circle_center, radius, Scalar(255,0,0), 1);
         }
-
-        Size patternsize(9,6); //interior number of corners
+        
+        Size patternsize(7,4); //interior number of corners
         vector<Point2f> corners; //this will be filled by the detected corners
 
         //CALIB_CB_FAST_CHECK saves a lot of time on images
         //that do not contain any chessboard corners
         Mat masked_image = gray.clone();
-        while (false) {
+        while (true) {
             bool patternfound = findChessboardCorners(masked_image, patternsize, corners,
                                    CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE
                                    | CALIB_CB_FAST_CHECK);
 
+            
             if (patternfound)
                 cornerSubPix(gray, corners, Size(11, 11), Size(-1, -1),
                              TermCriteria(cv::TermCriteria::EPS + TermCriteria::MAX_ITER, 30, 0.1));
@@ -280,7 +282,7 @@ void RsCam::calibrate() {
 }
 
 void RsCam::captureFrame() {
-
+    
     if (isCalibrating)
         return;
 
@@ -305,7 +307,7 @@ void RsCam::captureFrame() {
         double total_lights = 120;
         double mid_strip = 80;
         int light_id = int( (total_lights-mid_strip)/2 + currentLight*(mid_strip/8));
-
+        
         lighting(light_id, 255);
         msleep(20);
         rs2::frameset frames = m_pipe.wait_for_frames();
@@ -357,4 +359,41 @@ void RsCam::msleep(unsigned long msecs) {
     while (QTime::currentTime() < sleepTime) {
         QCoreApplication::processEvents(QEventLoop::AllEvents);
     }
+}
+void RsCam::screenshotwithLight() {
+
+    rs2::frameset frames;
+    int i = 0;
+    while (true) {
+        frames = m_pipe.wait_for_frames();
+        rs2::frame color_frame = frames.get_color_frame();
+        Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
+        Mat gray = Mat(color.rows, color.cols, CV_8UC1);
+        std::cout << saveimage <<std::endl;
+        if (saveimage)
+        {
+            std::string filename = std::to_string(i) + ".png";
+            cv::imwrite(filename, gray);
+            saveimage = false;
+            i = i + 1;
+        }
+
+        emit newCamFrame(color.clone());
+    }
+}
+void RsCam::save_image()
+{
+    saveimage = true;   
+}
+void RsCam::sendlight()
+{
+    lights_off();
+    currentLight = currentLight + 1;
+    if (currentLight==num_lights)
+        std::cout<< "all lights are activate" <<std::endl;
+        currentLight = 0;
+    std::cout<<currentLight<<std::endl;
+    lighting(currentLight, 255);
+   
+
 }

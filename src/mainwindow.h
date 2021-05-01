@@ -60,6 +60,8 @@ private:
     QRadioButton *normalsRadioButton, *surfaceRadioButton;
     QCheckBox *testModeCheckBox;
     QPushButton *calibrateButton;
+    QPushButton *screenshotButton;
+    QPushButton *lightButton;
 
     QThread *camThread;
     
