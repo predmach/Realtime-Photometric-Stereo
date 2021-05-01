@@ -115,7 +115,7 @@ void MainWindow::createInterface() {
     QGridLayout* cameraButtonsLayout = new QGridLayout();
 
     calibrateButton = new QPushButton("Calibrate");
-    connect(calibrateButton, SIGNAL(released()), camera, SLOT(calibrate()));
+    connect(calibrateButton, &QPushButton::pressed, [&]() {camera->calibrate();});
     cameraButtonsLayout->addWidget(calibrateButton, 0, 0);
 
     /* test modus using 8 prev taken photos */
@@ -129,18 +129,20 @@ void MainWindow::createInterface() {
     cameraButtonsLayout->addWidget(testModeCheckBox, 0, 1);
     //-------------------------------------------
     screenshotButton = new QPushButton("Capture Data");
-    connect(screenshotButton, SIGNAL(pressed()), camera, SLOT(save_image()));
+    connect(screenshotButton, &QPushButton::pressed, [&]() {camera->save_image();});
+    //connect(screenshotButton, SIGNAL(pressed()), camera, SLOT(captureFrame()));
     cameraButtonsLayout->addWidget(screenshotButton, 0, 2);
     //-------------------------------------------
     lightButton = new QPushButton("Send Light");
-    connect(lightButton, SIGNAL(pressed()), camera, SLOT(sendlight()));
+    connect(lightButton, &QPushButton::pressed, [&]() {camera->sendlight();});
+    //connect(lightButton, SIGNAL(pressed()), camera, SLOT(sendlight()));
     cameraButtonsLayout->addWidget(lightButton, 1, 0);
     //-------------------------------------------
-    QSpinBox * spinbox;
+    // QSpinBox * lighidspingbox;
 
-    spinbox = new QSpinBox();
-    spinbox->setValue(0);// example of using a pointer to edit its states
-    cameraButtonsLayout->addWidget(spinbox, 1, 0);
+    // lighidspingbox = new QSpinBox();
+    // lighidspingbox->setValue(0);// example of using a pointer to edit its states
+    // cameraButtonsLayout->addWidget(lighidspingbox, 1, 0);
     //-------------------------------------------
     gridLayout->addLayout(cameraButtonsLayout, 1, 0);
     

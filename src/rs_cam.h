@@ -29,7 +29,7 @@
 #include <QTimer>
 #include <QtCore/QTime>
 #include <QCoreApplication>
-
+#include <QFileDialog>
 #include <librealsense2/rs.hpp>
 
 //#include "lights.h"
@@ -58,15 +58,19 @@ public:
 
 public slots:
     void start();
-
-private slots:
+    void calibrate();
+    void sendlight();
     void captureFrame();
+    void save_image();
+     
+private slots:
+    
     void lights_off();
     void lights_on();
-    void calibrate();
+    
     void screenshotwithLight();
-    void save_image();
-    void sendlight();
+    // void save_image();
+    
 
 signals:
     void newCamFrame(cv::Mat frame);

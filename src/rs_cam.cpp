@@ -275,6 +275,7 @@ L(i,:) = 2 * Nz * normal - R;
 */
 
 void RsCam::calibrate() {
+    std::cout << "calibrate hit"<<std::endl;
     isCalibrating = true;
     captureAmbientImage();
     isCalibrating = false;
@@ -283,6 +284,7 @@ void RsCam::calibrate() {
 
 void RsCam::captureFrame() {
     
+    std::cout<< "capture frame" <<std::endl;
     if (isCalibrating)
         return;
 
@@ -291,6 +293,7 @@ void RsCam::captureFrame() {
         currentLight = 0;
 
     if (!has_ambient || currentLight==num_lights) {
+        std::cout<< "taking ambient" <<std::endl;
         captureAmbientImage();
         has_ambient = true;
         currentLight = 0;
@@ -362,18 +365,56 @@ void RsCam::msleep(unsigned long msecs) {
 }
 void RsCam::screenshotwithLight() {
     rs2::frameset frames;
-    int i = 0;
-    while (true) {
+    bool saved_ambient = false;
+    //saveimage = true;
+
+    for (int i=0; i<5; i++) 
+    {
         frames = m_pipe.wait_for_frames();
+        msleep(250);
+    }
+    
+    while (true) {
+       
+
+        frames = m_pipe.wait_for_frames();
+        msleep(10);
         rs2::frame color_frame = frames.get_color_frame();
         Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
         Mat gray = Mat(color.rows, color.cols, CV_8UC1);
+        cvtColor(color, gray, COLOR_RGB2GRAY);
+
+        if (saved_ambient == false)
+        {
+            imwrite("ambient.png", gray);
+            saved_ambient = true;
+
+        }
         if (saveimage)
         {
-            std::string filename = std::to_string(i) + ".png";
-            cv::imwrite(filename, gray);
+            
+            std::map <int, Mat> light_map;
+            for (int i = 0; i < num_lights; i++)
+            {
+                //msleep(250);
+                lighting(i, 255);
+                msleep(10);
+                frames = m_pipe.wait_for_frames();
+                color_frame = frames.get_color_frame();
+                Mat current_light_color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
+                Mat current_light_gray = Mat(color.rows, color.cols, CV_8UC1);
+                cvtColor(current_light_color, current_light_gray, COLOR_RGB2GRAY);
+                light_map[i] = current_light_color;
+                std::string filename = "cap_test_light"+ std::to_string(i) + ".png";
+                imwrite(filename, current_light_gray);
+                std::cout << "saving in :  " << filename <<std::endl;
+                Mat diff = gray - current_light_gray;
+                filename = "cap_test_light_diff"+ std::to_string(i) + ".png";
+                imwrite(filename, diff);
+                lights_off();
+       
+            }
             saveimage = false;
-            i = i + 1;
         }
 
         emit newCamFrame(color.clone());
@@ -391,7 +432,7 @@ void RsCam::sendlight()
     if (currentLight==num_lights)
         std::cout<< "all lights are activate" <<std::endl;
         currentLight = 0;
-    std::cout<<currentLight<<std::endl;
+
     lighting(currentLight, 255);
    
 }
