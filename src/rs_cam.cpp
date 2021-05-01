@@ -361,7 +361,6 @@ void RsCam::msleep(unsigned long msecs) {
     }
 }
 void RsCam::screenshotwithLight() {
-
     rs2::frameset frames;
     int i = 0;
     while (true) {
@@ -386,6 +385,7 @@ void RsCam::save_image()
 }
 void RsCam::sendlight()
 {
+    std::cout<< "Lighting" <<std::endl;
     lights_off();
     currentLight = currentLight + 1;
     if (currentLight==num_lights)
