@@ -137,8 +137,8 @@ void RsCam::start() {
 //    connect(eventLoopTimer, SIGNAL(timeout()), this, SLOT(captureFrame()));
 //    connect(this, SIGNAL(stopped()), eventLoopTimer, SLOT(stop()));
 //    eventLoopTimer->start(1000); ///m_fps);
-    screenshotwithLight();
-    //QTimer::singleShot(200, this, &RsCam::captureFrame);
+    //screenshotwithLight();
+    QTimer::singleShot(200, this, &RsCam::captureFrame);
 }
 
 void RsCam::stop() {
@@ -177,6 +177,12 @@ void RsCam::captureAmbientImage() {
     int c_min_i = -1;
     double accuracy = 1.0;
 
+    cv::Vec3d point1(0, 0, 0);
+    cv::Vec3d point2(0, 0, 1);
+    cv::Vec3d normal_in_world =  point2 - point1;
+    std::cout << "normal in world" <<normal_in_world<<std::endl;
+    std::vector<Mat> masked_images (0);
+    Mat normal_planes;
     rs2::video_stream_profile rs_rgb_stream = m_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
     while (c_min_d == MAXFLOAT) {
         frames = m_pipe.wait_for_frames();
@@ -225,7 +231,9 @@ void RsCam::captureAmbientImage() {
         Mat masked_image = gray.clone();
         
 
-        std::vector<Mat> masked_images (0);
+        
+      
+            
         while (true) {
             bool patternfound = findChessboardCorners(masked_image, patternsize, corners,
                                    CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE
@@ -250,7 +258,7 @@ void RsCam::captureAmbientImage() {
             vertices[3] = corners[patternsize.width-1];
             cv::fillConvexPoly(masked_image, vertices, 4, Scalar(255,255,255));
             
-            if (masked_images.size()!=3)
+            if (masked_images.size()< 3)
             {
                 vertices[0] = corners[0];
                 vertices[1] = corners[(patternsize.height-1)*patternsize.width];
@@ -261,11 +269,14 @@ void RsCam::captureAmbientImage() {
                 cv::fillConvexPoly(masked_image, vertices, 4, Scalar(255,255,255));
                 masked_images.push_back(masked_image);
 
+
                 std::vector<Point3d> target_corner_points_world_3D;
                 for (int i = 0; i < patternsize.height; i++)
                     for (int j = 0; j < patternsize.width; j++)
                         target_corner_points_world_3D.push_back(
                                     Point3d( i * patternsize.height, j * patternsize.width, 0 ));
+
+                
 
                 // Solve for pose of calibration target
 
@@ -291,11 +302,20 @@ void RsCam::captureAmbientImage() {
                     Mat w_M_c_ = Mat::eye(4, 4, R.type()); // M is 4x4
                     w_M_c_( Range(0,3), Range(0,3) ) = R * 1; // copies R into M
                     w_M_c_( Range(0,3), Range(3,4) ) = calibration_translation_vector * 1;
+                    
+                    
+
+                    cv::Mat normal_currentplane = R * Mat(normal_in_world);
+                 
+                    
+                    normal_planes.push_back(normal_currentplane);
+
 
                     Mat inv_R = R.t();  // rotation of inverse
 
                     // CAMERA POSITION IN WORLD FRAME
                     Mat camera_position_in_world_3D = -inv_R * calibration_translation_vector;
+
 
                     // BUILD CAMERA TO WORLD TRANSFORMATION MATRIX
                     Mat inv_translation_vector = -inv_R * calibration_translation_vector; // translation of inverse
@@ -307,21 +327,25 @@ void RsCam::captureAmbientImage() {
                 }
             }
 
-            if (masked_images.size()==3)
+            if (masked_images.size()==3 && get_plane_normal)
             {
-
-                if (save_masked)
-                {
-                    cv::imshow("plane1", masked_images[0]);
-                    cv::imshow("plane2", masked_images[1]);
-                    cv::imshow("plane3", masked_images[2]);
-                    cv::imwrite("plane1.png", masked_images[0]);
-                    cv::imwrite("plane2.png", masked_images[1]);
-                    cv::imwrite("plane3.png", masked_images[2]);
-                    save_masked = false;
-                }
-            
+                Calibration::get_plane_normals(normal_planes);
+                get_plane_normal = false;
             }
+
+
+            if (masked_images.size()==3 && save_masked)
+            {
+                cv::imshow("plane1", masked_images[0]);
+                cv::imshow("plane2", masked_images[1]);
+                cv::imshow("plane3", masked_images[2]);
+                cv::imwrite("plane1.png", masked_images[0]);
+                cv::imwrite("plane2.png", masked_images[1]);
+                cv::imwrite("plane3.png", masked_images[2]);
+                save_masked = false;
+            }
+            
+          
             
         }
         accuracy -= 0.1;
@@ -506,7 +530,10 @@ void RsCam::save_mask()
 {
     save_masked = true;   
 }
-
+void RsCam::test_get_normal()
+{
+    get_plane_normal = true;   
+}
 void RsCam::sendlight()
 {
     std::cout<< "Lighting" <<std::endl;

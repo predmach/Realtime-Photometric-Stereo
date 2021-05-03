@@ -31,6 +31,7 @@
 #include <QCoreApplication>
 #include <QFileDialog>
 #include <librealsense2/rs.hpp>
+#include "calibration.h"
 
 //#include "lights.h"
 
@@ -56,6 +57,8 @@ public:
     int m_fps;
     int lighid = 0;
     bool save_masked = false;
+    bool get_plane_normal = false;
+
 
 public slots:
     void start();
@@ -64,6 +67,7 @@ public slots:
     void captureFrame();
     void save_image();
     void save_mask();
+    void test_get_normal();
 private slots:
     
     void lights_off();

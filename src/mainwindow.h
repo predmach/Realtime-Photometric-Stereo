@@ -63,6 +63,7 @@ private:
     QPushButton *screenshotButton;
     QPushButton *lightButton;
     QPushButton *save_maskButton;
+    QPushButton *testnormalButton; 
     QThread *camThread;
     
     // Camera *camera;

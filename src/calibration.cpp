@@ -84,8 +84,9 @@ void Calibration::withFourPlanes() {
     fwrite(S.data, 1, sizeof(float)*S.rows*S.cols*S.channels(), pFile);
     fclose(pFile);
 }
-void Calibration::withThreePlane() {
+void Calibration::withThreePlane(cv::Mat normals) {
     
+ 
     std::cout << "Calibration With Three Plane:" << std::endl;
     
     /* reading 8 x 3 plane images */
@@ -110,8 +111,8 @@ void Calibration::withThreePlane() {
         plane3.push_back(img3);
     }
     
-    float a = 1.7922437549939767; // The whole materix N is not clear for me. 
-    float c = 25.97710530447917;
+    // float a = 1.7922437549939767; // The whole materix N is not clear for me. 
+    // float c = 25.97710530447917;
     int channels = 24;
     int numImgs = plane1.size();
     int imgHeight = plane1[0].rows;
@@ -121,9 +122,12 @@ void Calibration::withThreePlane() {
     //                                          0,-a, c,
     //                                          a, 0, c,
     //                                          0, a, c);
-    cv::Mat N = (cv::Mat_<float>(3,3) <<    -a, 0, c,
-                                             0,-a, c,
-                                             a, 0, c);
+    cv::Mat N = (cv::Mat_<double>(3,3) <<    normals.at<double>(0,0), normals.at<double>(0,1), normals.at<double>(0,2),
+                                             normals.at<double>(0,3),normals.at<double>(0,4), normals.at<double>(0,5),
+                                             normals.at<double>(0,6), normals.at<double>(0,7), normals.at<double>(0,8));
+
+
+    std::cout << "normals N: " << N << std::endl;
     cv::normalize(N, N, 2, cv::NORM_L2);
         
     cv::Mat Ninv;
@@ -149,14 +153,11 @@ void Calibration::withThreePlane() {
             }
             /* pseudo-inverse of local light matrix */
             cv::invert(s, s, cv::DECOMP_SVD);
-            
-
             for (int i=0; i<numImgs; i++) {
                 ((float*)S.data)[(y*imgWidth*channels)+(x*channels)+(i*3+0)] = ((float*)s.data)[(0*8*1)+(i*1)+(0)];
                 ((float*)S.data)[(y*imgWidth*channels)+(x*channels)+(i*3+1)] = ((float*)s.data)[(1*8*1)+(i*1)+(0)];
                 ((float*)S.data)[(y*imgWidth*channels)+(x*channels)+(i*3+2)] = ((float*)s.data)[(2*8*1)+(i*1)+(0)];
             }
-            saveMatBinary("s_inv.mat", s);
             
         }
     }
@@ -170,11 +171,21 @@ void Calibration::withThreePlane() {
     // fwrite(S.data, 1, sizeof(float)*S.rows*S.cols*S.channels(), pFile);
     // fclose(pFile);
 }
+void Calibration::get_plane_normals(cv::Mat normals)
+{
+    cv::Mat N = (cv::Mat_<double>(3,3) <<    normals.at<double>(0,0), normals.at<double>(0,1), normals.at<double>(0,2),
+                                             normals.at<double>(0,3),normals.at<double>(0,4), normals.at<double>(0,5),
+                                             normals.at<double>(0,6), normals.at<double>(0,7), normals.at<double>(0,8));
+
+
+    std::cout << "normals N: " << N << std::endl;
+
+}
 bool Calibration::saveMatBinary(const std::string& filename, const cv::Mat& mat){
     std::ofstream ofs(filename, std::ios::binary);
     return writeMatBinary(ofs, mat);
 }
-bool writeMatBinary(std::ofstream& ofs, const cv::Mat& out_mat)
+bool Calibration::writeMatBinary(std::ofstream& ofs, const cv::Mat& out_mat)
 {
     if(!ofs.is_open()){
         return false;

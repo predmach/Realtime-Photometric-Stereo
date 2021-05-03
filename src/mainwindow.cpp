@@ -138,6 +138,13 @@ void MainWindow::createInterface() {
     //connect(lightButton, SIGNAL(pressed()), camera, SLOT(sendlight()));
     cameraButtonsLayout->addWidget(save_maskButton, 1, 1);
     //-------------------------------------------
+     //-------------------------------------------
+    testnormalButton = new QPushButton("Get Plane Normal");
+    connect(testnormalButton, &QPushButton::pressed, [&]() {camera->test_get_normal();});
+    //connect(lightButton, SIGNAL(pressed()), camera, SLOT(sendlight()));
+    cameraButtonsLayout->addWidget(testnormalButton, 1, 2);
+    //-------------------------------------------
+
     // QSpinBox * lighidspingbox;
 
     // lighidspingbox = new QSpinBox();
