@@ -229,12 +229,9 @@ void RsCam::captureAmbientImage() {
         //CALIB_CB_FAST_CHECK saves a lot of time on images
         //that do not contain any chessboard corners
         Mat masked_image = gray.clone();
-        
-
-        
-      
-            
+    
         while (true) {
+            msleep(10);
             bool patternfound = findChessboardCorners(masked_image, patternsize, corners,
                                    CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE
                                    | CALIB_CB_FAST_CHECK);
@@ -258,7 +255,7 @@ void RsCam::captureAmbientImage() {
             vertices[3] = corners[patternsize.width-1];
             cv::fillConvexPoly(masked_image, vertices, 4, Scalar(255,255,255));
             
-            if (masked_images.size()< 3)
+            if (masked_images.size() < 3)
             {
                 vertices[0] = corners[0];
                 vertices[1] = corners[(patternsize.height-1)*patternsize.width];
@@ -303,10 +300,8 @@ void RsCam::captureAmbientImage() {
                     w_M_c_( Range(0,3), Range(0,3) ) = R * 1; // copies R into M
                     w_M_c_( Range(0,3), Range(3,4) ) = calibration_translation_vector * 1;
                     
-                    
-
                     cv::Mat normal_currentplane = R * Mat(normal_in_world);
-                 
+                   
                     
                     normal_planes.push_back(normal_currentplane);
 
@@ -329,6 +324,7 @@ void RsCam::captureAmbientImage() {
 
             if (masked_images.size()==3 && get_plane_normal)
             {
+               
                 Calibration::get_plane_normals(normal_planes);
                 get_plane_normal = false;
             }
