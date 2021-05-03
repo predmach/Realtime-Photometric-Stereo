@@ -10,11 +10,16 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "config.h"
+#include <fstream>
 
 class Calibration {
   
 public:
     static void withFourPlanes();
+    void withThreePlane();
+    bool saveMatBinary(const std::string& filename, const cv::Mat& mat);
+    bool writeMatBinary(std::ofstream& ofs, const cv::Mat& out_mat);
+
 };
 
 #endif

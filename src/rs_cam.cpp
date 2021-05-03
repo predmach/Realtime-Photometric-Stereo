@@ -137,8 +137,8 @@ void RsCam::start() {
 //    connect(eventLoopTimer, SIGNAL(timeout()), this, SLOT(captureFrame()));
 //    connect(this, SIGNAL(stopped()), eventLoopTimer, SLOT(stop()));
 //    eventLoopTimer->start(1000); ///m_fps);
-    //screenshotwithLight();
-    QTimer::singleShot(200, this, &RsCam::captureFrame);
+    screenshotwithLight();
+    //QTimer::singleShot(200, this, &RsCam::captureFrame);
 }
 
 void RsCam::stop() {
@@ -302,6 +302,8 @@ void RsCam::captureAmbientImage() {
                     Mat c_M_w_ = Mat::eye(4, 4, R.type());
                     c_M_w_( Range(0,3), Range(0,3) ) = inv_R * 1; // copies R into T
                     c_M_w_( Range(0,3), Range(3,4) ) = inv_translation_vector * 1;
+
+
                 }
             }
 
@@ -310,6 +312,9 @@ void RsCam::captureAmbientImage() {
 
                 if (save_masked)
                 {
+                    cv::imshow("plane1", masked_images[0]);
+                    cv::imshow("plane2", masked_images[1]);
+                    cv::imshow("plane3", masked_images[2]);
                     cv::imwrite("plane1.png", masked_images[0]);
                     cv::imwrite("plane2.png", masked_images[1]);
                     cv::imwrite("plane3.png", masked_images[2]);
@@ -466,7 +471,7 @@ void RsCam::screenshotwithLight() {
         {
             
             std::map <int, Mat> light_map;
-            for (int i = 0; i < num_lights; i+=20)
+            for (int i = 0; i < num_lights; i++)
             {
                 //msleep(250);
                 lighting(i, 255);
