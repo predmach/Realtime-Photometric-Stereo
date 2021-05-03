@@ -137,8 +137,8 @@ void RsCam::start() {
 //    connect(eventLoopTimer, SIGNAL(timeout()), this, SLOT(captureFrame()));
 //    connect(this, SIGNAL(stopped()), eventLoopTimer, SLOT(stop()));
 //    eventLoopTimer->start(1000); ///m_fps);
-    screenshotwithLight();
-    //QTimer::singleShot(200, this, &RsCam::captureFrame);
+    //screenshotwithLight();
+    QTimer::singleShot(200, this, &RsCam::captureFrame);
 }
 
 void RsCam::stop() {
@@ -221,11 +221,14 @@ void RsCam::captureAmbientImage() {
         //CALIB_CB_FAST_CHECK saves a lot of time on images
         //that do not contain any chessboard corners
         Mat masked_image = gray.clone();
+        
+
+        std::vector<Mat> masked_images (0);
         while (true) {
             bool patternfound = findChessboardCorners(masked_image, patternsize, corners,
                                    CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE
                                    | CALIB_CB_FAST_CHECK);
-
+            
             
             if (patternfound)
                 cornerSubPix(gray, corners, Size(11, 11), Size(-1, -1),
@@ -237,13 +240,42 @@ void RsCam::captureAmbientImage() {
 
             if (corners.front().y > corners.back().y)
                 std::reverse(corners.begin(), corners.end());
+            
+            
+           
             Point vertices[4];
             vertices[0] = corners[0];
             vertices[1] = corners[(patternsize.height-1)*patternsize.width];
             vertices[2] = corners[(patternsize.height-1)*patternsize.width+(patternsize.width-1)];
             vertices[3] = corners[patternsize.width-1];
             cv::fillConvexPoly(masked_image, vertices, 4, Scalar(255,255,255));
-//            break;
+            
+            if (masked_images.size()!=3)
+            {
+                Mat masked_temp(gray.size(), CV_8U, Scalar(0)); 
+                vertices[0] = corners[0];
+                vertices[1] = corners[(patternsize.height-1)*patternsize.width];
+                vertices[2] = corners[(patternsize.height-1)*patternsize.width+(patternsize.width-1)];
+                vertices[3] = corners[patternsize.width-1];
+                cv::fillConvexPoly(masked_temp, vertices, 4, Scalar(255,255,255));
+                cv::Mat masked_image;
+                gray.copyTo(masked_image, masked_temp);
+                masked_images.push_back(masked_image);
+            }
+
+            if (masked_images.size()==3)
+            {
+
+                if (save_masked)
+                {
+                    cv::imwrite("plane1.png", masked_images[0]);
+                    cv::imwrite("plane2.png", masked_images[1]);
+                    cv::imwrite("plane3.png", masked_images[2]);
+                    save_masked = false;
+                }
+            
+            }
+            
         }
         accuracy -= 0.1;
         emit newCamFrame(color.clone());
@@ -422,6 +454,11 @@ void RsCam::save_image()
 {
     saveimage = true;   
 }
+void RsCam::save_mask()
+{
+    save_masked = true;   
+}
+
 void RsCam::sendlight()
 {
     std::cout<< "Lighting" <<std::endl;

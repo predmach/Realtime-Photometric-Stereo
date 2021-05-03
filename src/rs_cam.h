@@ -55,6 +55,7 @@ public:
     int m_depth_height;
     int m_fps;
     int lighid = 0;
+    bool save_masked = false;
 
 public slots:
     void start();
@@ -62,7 +63,7 @@ public slots:
     void sendlight();
     void captureFrame();
     void save_image();
-     
+    void save_mask();
 private slots:
     
     void lights_off();

@@ -133,10 +133,10 @@ void MainWindow::createInterface() {
     //connect(screenshotButton, SIGNAL(pressed()), camera, SLOT(captureFrame()));
     cameraButtonsLayout->addWidget(screenshotButton, 0, 2);
     //-------------------------------------------
-    lightButton = new QPushButton("Send Light");
-    connect(lightButton, &QPushButton::pressed, [&]() {camera->sendlight();});
+    save_maskButton = new QPushButton("Save Mask");
+    connect(save_maskButton, &QPushButton::pressed, [&]() {camera->save_mask();});
     //connect(lightButton, SIGNAL(pressed()), camera, SLOT(sendlight()));
-    cameraButtonsLayout->addWidget(lightButton, 1, 0);
+    cameraButtonsLayout->addWidget(save_maskButton, 1, 1);
     //-------------------------------------------
     // QSpinBox * lighidspingbox;
 
