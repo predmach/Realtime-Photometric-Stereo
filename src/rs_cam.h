@@ -92,7 +92,7 @@ private:
     QTimer *lightTimer;
 //    Lights *lights;
     int currentLight=0;
-    int num_lights=77;
+    int num_lights=202; //77;
 
     int numCams;
 

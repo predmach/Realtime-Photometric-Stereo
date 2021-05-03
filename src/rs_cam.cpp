@@ -176,6 +176,8 @@ void RsCam::captureAmbientImage() {
     double c_min_d = MAXFLOAT;
     int c_min_i = -1;
     double accuracy = 1.0;
+
+    rs2::video_stream_profile rs_rgb_stream = m_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
     while (c_min_d == MAXFLOAT) {
         frames = m_pipe.wait_for_frames();
         rs2::frame color_frame = frames.get_color_frame();
@@ -240,8 +242,6 @@ void RsCam::captureAmbientImage() {
 
             if (corners.front().y > corners.back().y)
                 std::reverse(corners.begin(), corners.end());
-            
-            
            
             Point vertices[4];
             vertices[0] = corners[0];
@@ -252,15 +252,57 @@ void RsCam::captureAmbientImage() {
             
             if (masked_images.size()!=3)
             {
-                Mat masked_temp(gray.size(), CV_8U, Scalar(0)); 
                 vertices[0] = corners[0];
                 vertices[1] = corners[(patternsize.height-1)*patternsize.width];
                 vertices[2] = corners[(patternsize.height-1)*patternsize.width+(patternsize.width-1)];
                 vertices[3] = corners[patternsize.width-1];
-                cv::fillConvexPoly(masked_temp, vertices, 4, Scalar(255,255,255));
-                cv::Mat masked_image;
-                gray.copyTo(masked_image, masked_temp);
+
+                Mat masked_image(gray.size(), CV_8U, Scalar(0));
+                cv::fillConvexPoly(masked_image, vertices, 4, Scalar(255,255,255));
                 masked_images.push_back(masked_image);
+
+                std::vector<Point3d> target_corner_points_world_3D;
+                for (int i = 0; i < patternsize.height; i++)
+                    for (int j = 0; j < patternsize.width; j++)
+                        target_corner_points_world_3D.push_back(
+                                    Point3d( i * patternsize.height, j * patternsize.width, 0 ));
+
+                // Solve for pose of calibration target
+
+                cv::Mat calibration_camera_matrix;
+                cv::Mat calibration_distortion_coefficients;
+                cv::Mat calibration_rotation_vector;
+                cv::Mat calibration_translation_vector;
+
+                auto rgb_video_frame = color_frame.as<rs2::video_frame>();
+                const int rgb_width = rgb_video_frame.get_width();
+                const int rgb_height = rgb_video_frame.get_height();
+                rs2_intrinsics rs_rgb_instrinsics = rs_rgb_stream.get_intrinsics();
+
+                calibration_camera_matrix = (Mat_<double>(3,3) << rs_rgb_instrinsics.fx, 0, rs_rgb_instrinsics.ppx, 0, rs_rgb_instrinsics.fy, rs_rgb_instrinsics.ppy, 0, 0, 1);
+                calibration_distortion_coefficients = Mat::zeros(4, 1, DataType<double>::type);
+
+                bool found_pose = solvePnP(target_corner_points_world_3D, corners, calibration_camera_matrix, calibration_distortion_coefficients, calibration_rotation_vector, calibration_translation_vector);
+                if (found_pose) {
+                    Mat R;
+                    Rodrigues(calibration_rotation_vector, R); // Convert "rvec arg" m_calibration_rotation_vector to 3x3 rotation matrix R
+
+                    // BUILD WORLD TO CAMERA TRANSFORMATION MATRIX
+                    Mat w_M_c_ = Mat::eye(4, 4, R.type()); // M is 4x4
+                    w_M_c_( Range(0,3), Range(0,3) ) = R * 1; // copies R into M
+                    w_M_c_( Range(0,3), Range(3,4) ) = calibration_translation_vector * 1;
+
+                    Mat inv_R = R.t();  // rotation of inverse
+
+                    // CAMERA POSITION IN WORLD FRAME
+                    Mat camera_position_in_world_3D = -inv_R * calibration_translation_vector;
+
+                    // BUILD CAMERA TO WORLD TRANSFORMATION MATRIX
+                    Mat inv_translation_vector = -inv_R * calibration_translation_vector; // translation of inverse
+                    Mat c_M_w_ = Mat::eye(4, 4, R.type());
+                    c_M_w_( Range(0,3), Range(0,3) ) = inv_R * 1; // copies R into T
+                    c_M_w_( Range(0,3), Range(3,4) ) = inv_translation_vector * 1;
+                }
             }
 
             if (masked_images.size()==3)
@@ -424,7 +466,7 @@ void RsCam::screenshotwithLight() {
         {
             
             std::map <int, Mat> light_map;
-            for (int i = 0; i < num_lights; i++)
+            for (int i = 0; i < num_lights; i+=20)
             {
                 //msleep(250);
                 lighting(i, 255);
@@ -442,7 +484,8 @@ void RsCam::screenshotwithLight() {
                 filename = "cap_test_light_diff"+ std::to_string(i) + ".png";
                 imwrite(filename, diff);
                 lights_off();
-       
+//                msleep(10);
+
             }
             saveimage = false;
         }
