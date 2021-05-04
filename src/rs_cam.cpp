@@ -301,9 +301,30 @@ void RsCam::captureAmbientImage() {
                     w_M_c_( Range(0,3), Range(3,4) ) = calibration_translation_vector * 1;
                     
                     cv::Mat normal_currentplane = R * Mat(normal_in_world);
-                   
+                    // --------------------
+                    Vec4d point2_in_world_hom(0, 0, 1.0, 1.0);
+                    Vec4d point1_in_world_hom(0, 0, 0, 1.0);
+                    Mat point2_in_camera_hom = w_M_c_ * point2_in_world_hom;
+                    Mat point1_in_camera_hom = w_M_c_ * point1_in_world_hom;
+                    //std::cout << point2_in_camera_hom<<std::endl;
+                    // Point3d world_point_3d(point2_in_camera_hom.at<double>(0), 
+                    //                     point2_in_camera_hom.at<double>(1), point2_in_camera_hom.at<double>(2));
+                    cv::Mat point2_on_camera = (cv::Mat_<double>(1, 3) << point2_in_camera_hom.at<double>(0), 
+                    point2_in_camera_hom.at<double>(1), point2_in_camera_hom.at<double>(2));
+
+                    cv::Mat point1_on_camera = (cv::Mat_<double>(1, 3) << point1_in_camera_hom.at<double>(0), 
+                    point1_in_camera_hom.at<double>(1), point1_in_camera_hom.at<double>(2));
+
+
+                    cv::Mat normal_in_camera = point2_on_camera - point1_on_camera;
                     
-                    normal_planes.push_back(normal_currentplane);
+                    //cv::normalize(normal_in_camera, normal_in_camera, 1,cv::NORM_L2);
+                    cout << "normals by applying the whole transformation" << endl << " "  <<normal_in_camera << endl << endl;
+                    cout << "normals by applying rotation" << endl << " "  << normal_currentplane.t() << endl << endl;
+                    
+                    //---------------------
+                    
+                    normal_planes.push_back(normal_in_camera);
 
 
                     Mat inv_R = R.t();  // rotation of inverse

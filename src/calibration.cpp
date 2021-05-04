@@ -178,7 +178,10 @@ void Calibration::get_plane_normals(cv::Mat normals)
                                              normals.at<double>(0,6), normals.at<double>(0,7), normals.at<double>(0,8));
 
 
-    std::cout << "normals N: " << N << std::endl;
+    std::cout << "normals N = " << std::endl << " "  << N << std::endl << std::endl;
+    std::cout << "normals N * N_transpose = " << std::endl << " "  << N * N.t() << std::endl << std::endl;
+    
+    
 
 }
 bool Calibration::saveMatBinary(const std::string& filename, const cv::Mat& mat){
