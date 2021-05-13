@@ -3,14 +3,36 @@
 PhotometricStereo::PhotometricStereo(int width, int height, int imageIntensity) : width(width), height(height), minIntensity(imageIntensity) {
     
     /* setup pre calibrated global light sources */
-    cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<    -0.2222,  0.0074, 0.9749,
-                                                    -0.1629, -0.1407, 0.9765,
-                                                     0.0370, -0.2000, 0.9790,
-                                                     0.1481, -0.1407, 0.9789,
-                                                     0.2222,  0.0296, 0.9745,
-                                                     0.1333,  0.1481, 0.9799,
-                                                    -0.0222,  0.2000, 0.9795,
-                                                    -0.1555,  0.1481, 0.9766);
+    // cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<    -0.2222,  0.0074, 0.9749,
+    //                                                 -0.1629, -0.1407, 0.9765,
+    //                                                  0.0370, -0.2000, 0.9790,
+    //                                                  0.1481, -0.1407, 0.9789,
+    //                                                  0.2222,  0.0296, 0.9745,
+    //                                                  0.1333,  0.1481, 0.9799,
+    //                                                 -0.0222,  0.2000, 0.9795,
+    //                                                 -0.1555,  0.1481, 0.9766);
+
+    
+    //  /* setup pre calibrated global light sources */
+    // cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<    16.17, 214.96, 124.11,
+    //                                                 143.59, 365.35, 210.94,
+    //                                                 325.86, 467.75, 268.32,
+    //                                                 537.54, 499.26, 288.25,
+    //                                                 749.07, 464.09, 267.94,
+    //                                                 930.92, 364.12, 210.23,
+    //                                                 1057.72, 213.33, 123.17,
+    //                                                 1072.27, 19.77, 19.77);
+
+
+     cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<   -0.03733, 0.22529, 0.10419,
+                                                    0.10809, 0.38291, 0.17709,
+                                                    0.27236, 0.48707, 0.22527,
+                                                    0.48403, 0.52325, 0.24200,
+                                                    0.69557, 0.48638, 0.22495,
+                                                    0.78465, 0.38162, 0.17649,
+                                                    1.00422, 0.22358, 0.10340,
+                                                    1.05692, 0.4942, 0.22850);
+
     
     cv::invert(lightSrcs, lightSrcsInv, cv::DECOMP_SVD);
 
@@ -227,6 +249,8 @@ void PhotometricStereo::execute() {
     queue.enqueueWriteImage(cl_img6, CL_TRUE, origin, region, 0, 0, psImages.at(5).data);
     queue.enqueueWriteImage(cl_img7, CL_TRUE, origin, region, 0, 0, psImages.at(6).data);
     queue.enqueueWriteImage(cl_img8, CL_TRUE, origin, region, 0, 0, psImages.at(7).data);
+    
+    
     mutex.unlock();
     queue.enqueueWriteBuffer(cl_Sinv, CL_TRUE, 0, sSize, lightSrcsInv.data, NULL, &event);
     queue.enqueueWriteBuffer(cl_Pgrads, CL_TRUE, 0, gradSize, Pgrads.data, NULL, &event);
@@ -300,7 +324,134 @@ void PhotometricStereo::execute() {
     emit executionTime("Elapsed time: " + QString::number(getMilliSecs() - start) + " ms.");
     emit modelFinished(matVec);
 }
+void PhotometricStereo::execute_new(std::map<int, cv::Mat> captured_images, cv::Mat) {
 
+    std::cout << "------PS Execusion Started------" <<std::endl;
+    
+    imgIdx = 0;
+    for (int i = 13 ; i < 105 ; i += 13)
+    {   
+        captured_images[i].copyTo(psImages[imgIdx]);
+        imgIdx = imgIdx + 1;
+    }
+    // mutex.unlock();
+    /* measuring ps performance */
+    long start = getMilliSecs();
+
+    /* creating OpenCL buffers */
+    size_t imgSize3 = sizeof(float) * (height*width*3);
+    size_t gradSize = sizeof(float) * (height*width);
+    size_t sSize = sizeof(float) * (lightSrcsInv.rows*lightSrcsInv.cols*lightSrcsInv.channels());
+
+    cl::ImageFormat imgFormat = cl::ImageFormat(CL_INTENSITY, CL_UNORM_INT8);
+
+    cl_img1 = cl::Image2D(context, CL_MEM_READ_ONLY, imgFormat, width, height, 0, NULL, &error);
+    cl_img2 = cl::Image2D(context, CL_MEM_READ_ONLY, imgFormat, width, height, 0, NULL, &error);
+    cl_img3 = cl::Image2D(context, CL_MEM_READ_ONLY, imgFormat, width, height, 0, NULL, &error);
+    cl_img4 = cl::Image2D(context, CL_MEM_READ_ONLY, imgFormat, width, height, 0, NULL, &error);
+    cl_img5 = cl::Image2D(context, CL_MEM_READ_ONLY, imgFormat, width, height, 0, NULL, &error);
+    cl_img6 = cl::Image2D(context, CL_MEM_READ_ONLY, imgFormat, width, height, 0, NULL, &error);
+    cl_img7 = cl::Image2D(context, CL_MEM_READ_ONLY, imgFormat, width, height, 0, NULL, &error);
+    cl_img8 = cl::Image2D(context, CL_MEM_READ_ONLY, imgFormat, width, height, 0, NULL, &error);
+    cl_Sinv = cl::Buffer(context, CL_MEM_READ_ONLY, sSize, NULL, &error);
+    cl_Pgrads = cl::Buffer(context, CL_MEM_WRITE_ONLY, gradSize, NULL, &error);
+    cl_Qgrads = cl::Buffer(context, CL_MEM_WRITE_ONLY, gradSize, NULL, &error);
+    cl_N = cl::Buffer(context, CL_MEM_WRITE_ONLY, imgSize3, NULL, &error);
+
+    /* pushing data to CPU */
+    cv::Mat Normals(height, width, CV_32FC3, cv::Scalar::all(0));
+    cv::Mat Pgrads(height, width, CV_32F, cv::Scalar::all(0));
+    cv::Mat Qgrads(height, width, CV_32F, cv::Scalar::all(0));
+
+    cl::size_t<3> origin; origin[0] = 0; origin[1] = 0; origin[2] = 0;
+    cl::size_t<3> region; region[0] = width; region[1] = height; region[2] = 1;
+
+    mutex.lock();
+
+    queue.enqueueWriteImage(cl_img1, CL_TRUE, origin, region, 0, 0, psImages.at(0).data);
+    queue.enqueueWriteImage(cl_img2, CL_TRUE, origin, region, 0, 0, psImages.at(1).data);
+    queue.enqueueWriteImage(cl_img3, CL_TRUE, origin, region, 0, 0, psImages.at(2).data);
+    queue.enqueueWriteImage(cl_img4, CL_TRUE, origin, region, 0, 0, psImages.at(3).data);
+    queue.enqueueWriteImage(cl_img5, CL_TRUE, origin, region, 0, 0, psImages.at(4).data);
+    queue.enqueueWriteImage(cl_img6, CL_TRUE, origin, region, 0, 0, psImages.at(5).data);
+    queue.enqueueWriteImage(cl_img7, CL_TRUE, origin, region, 0, 0, psImages.at(6).data);
+    queue.enqueueWriteImage(cl_img8, CL_TRUE, origin, region, 0, 0, psImages.at(7).data);
+    
+    
+    mutex.unlock();
+    queue.enqueueWriteBuffer(cl_Sinv, CL_TRUE, 0, sSize, lightSrcsInv.data, NULL, &event);
+    queue.enqueueWriteBuffer(cl_Pgrads, CL_TRUE, 0, gradSize, Pgrads.data, NULL, &event);
+    queue.enqueueWriteBuffer(cl_Qgrads, CL_TRUE, 0, gradSize, Qgrads.data, NULL, &event);
+    queue.enqueueWriteBuffer(cl_N, CL_TRUE, 0, imgSize3, Normals.data, NULL, &event);
+
+    /* set kernel arguments */
+    calcNormKernel.setArg(0, cl_img1); // 1-8 images
+    calcNormKernel.setArg(1, cl_img2);
+    calcNormKernel.setArg(2, cl_img3);
+    calcNormKernel.setArg(3, cl_img4);
+    calcNormKernel.setArg(4, cl_img5);
+    calcNormKernel.setArg(5, cl_img6);
+    calcNormKernel.setArg(6, cl_img7);
+    calcNormKernel.setArg(7, cl_img8);
+    calcNormKernel.setArg(8, width); // required for..
+    calcNormKernel.setArg(9, height); // ..determining array dimensions
+    calcNormKernel.setArg(10, cl_Sinv); // inverse of light matrix
+    calcNormKernel.setArg(11, cl_Pgrads); // P gradients
+    calcNormKernel.setArg(12, cl_Qgrads); // Q gradients
+    calcNormKernel.setArg(13, cl_N); // normals for each point
+    calcNormKernel.setArg(14, maxpq); // max depth gradients as in [Wei2001]
+    calcNormKernel.setArg(15, minIntensity); // exaggerate slope as in [Malzbender2006]
+
+    /* wait for command queue to finish before continuing */
+    queue.finish();
+
+    /* executing kernel */
+    queue.enqueueNDRangeKernel(calcNormKernel, cl::NullRange, cl::NDRange(height, width), cl::NullRange, NULL, &event);
+    queue.finish();
+
+    /* reading back from CPU device */
+    queue.enqueueReadBuffer(cl_Pgrads, CL_TRUE, 0, gradSize, Pgrads.data);
+    queue.enqueueReadBuffer(cl_Qgrads, CL_TRUE, 0, gradSize, Qgrads.data);
+    queue.enqueueReadBuffer(cl_N, CL_TRUE, 0, sizeof(float) * (height*width*3), Normals.data);
+
+    /* integrate and get heights globally */
+    cv::Mat Zcoords = getGlobalHeights(Pgrads, Qgrads);
+    
+    /* pushing normals to CPU again */
+    cl_N = cl::Buffer(context, CL_MEM_READ_WRITE, imgSize3, NULL, &error);
+    queue.enqueueWriteBuffer(cl_N, CL_TRUE, 0, imgSize3, Normals.data);
+    
+    /*  unsharp masking as in [Malzbender2006] */
+    updateNormKernel.setArg(0, cl_N);
+    updateNormKernel.setArg(1, width);
+    updateNormKernel.setArg(2, height);
+    updateNormKernel.setArg(3, cl_Pgrads);
+    updateNormKernel.setArg(4, cl_Qgrads);
+    updateNormKernel.setArg(5, unsharpScaleFactor);
+    
+    /* executing kernel updating normals */
+    queue.enqueueNDRangeKernel(updateNormKernel, cl::NullRange, cl::NDRange(height, width), cl::NullRange, NULL, &event);
+    queue.finish();
+    
+    /* reading back from CPU device */
+    queue.enqueueReadBuffer(cl_Pgrads, CL_TRUE, 0, gradSize, Pgrads.data);
+    queue.enqueueReadBuffer(cl_Qgrads, CL_TRUE, 0, gradSize, Qgrads.data);
+    queue.enqueueReadBuffer(cl_N, CL_TRUE, 0, imgSize3, Normals.data);
+    
+    /* integrate updated gradients second time */
+    Zcoords = getGlobalHeights(Pgrads, Qgrads);
+
+    /* store 3d data and normals tensor-like */
+    std::vector<cv::Mat> matVec;
+    matVec.push_back(XCoords);
+    matVec.push_back(YCoords);
+    matVec.push_back(Zcoords);
+    matVec.push_back(Normals);
+    
+
+    emit executionTime("Elapsed time: " + QString::number(getMilliSecs() - start) + " ms.");
+    emit modelFinished(matVec);
+}
 cv::Mat PhotometricStereo::getGlobalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
 
     cv::Mat P(Pgrads.rows, Pgrads.cols, CV_32FC2, cv::Scalar::all(0));

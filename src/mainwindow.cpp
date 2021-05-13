@@ -42,7 +42,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     
     /* connecting ps process with mainwindow and modelwidget */
     connect(ps, SIGNAL(executionTime(QString)), this, SLOT(setStatusMessage(QString)), Qt::AutoConnection);
-    connect(ps, SIGNAL(modelFinished(std::vector<cv::Mat>)), this, SLOT(onModelFinished(std::vector<cv::Mat>)), Qt::AutoConnection);
+    connect(ps, SIGNAL(modelFinished(std::vector<cv::Mat>)), this, SLOT(onModelFinished(std::vector<cv::Mat>)), Qt::DirectConnection);
 
     
     /* start camera in separate thread with high priority */

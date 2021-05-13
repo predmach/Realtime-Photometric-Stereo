@@ -84,7 +84,9 @@ void Calibration::withFourPlanes() {
     fwrite(S.data, 1, sizeof(float)*S.rows*S.cols*S.channels(), pFile);
     fclose(pFile);
 }
-void Calibration::withThreePlane(cv::Mat normals) {
+void Calibration::withThreePlane(cv::Mat normals, std::map<int, std::vector<cv::Mat>> calibration_planes) 
+
+{
     
  
     std::cout << "Calibration With Three Plane:" << std::endl;
@@ -94,23 +96,28 @@ void Calibration::withThreePlane(cv::Mat normals) {
     std::cout << "..reading images" << std::endl;
 	for (int i = 0; i < 8; i++) {
         std::stringstream s1, s2, s3;
-        s1 << PATH_ASSETS << "build/plane1_capture_" << i << ".png";
-        s2 << PATH_ASSETS << "build/plane2_capture_" << i << ".png";
-        s3 << PATH_ASSETS << "build/plane3_capture_" << i << ".png";
+        // s1 << PATH_ASSETS << "build/plane1_capture_" << i << ".png";
+        // s2 << PATH_ASSETS << "build/plane2_capture_" << i << ".png";
+        // s3 << PATH_ASSETS << "build/plane3_capture_" << i << ".png";
         
-        cv::Mat img1 = cv::imread(s1.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
-        cv::Mat img2 = cv::imread(s2.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
-        cv::Mat img3 = cv::imread(s3.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
+        // cv::Mat img1 = cv::imread(s1.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
+        // cv::Mat img2 = cv::imread(s2.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
+        // cv::Mat img3 = cv::imread(s3.str(), cv::ImreadModes::IMREAD_GRAYSCALE);
+
+        cv::Mat img1 = calibration_planes[0][i];
+        cv::Mat img2 = calibration_planes[1][i];
+        cv::Mat img3 = calibration_planes[2][i];
         
         /* using cropped images as provided by camera class */
-        assert(img1.rows == IMG_HEIGHT && img1.cols == IMG_HEIGHT);
-        assert(img2.rows == IMG_HEIGHT && img2.cols == IMG_HEIGHT);
-        assert(img3.rows == IMG_HEIGHT && img3.cols == IMG_HEIGHT);
+        // assert(img1.rows == IMG_HEIGHT && img1.cols == IMG_HEIGHT);
+        // assert(img2.rows == IMG_HEIGHT && img2.cols == IMG_HEIGHT);
+        // assert(img3.rows == IMG_HEIGHT && img3.cols == IMG_HEIGHT);
         plane1.push_back(img1);
         plane2.push_back(img2);
         plane3.push_back(img3);
     }
     
+    std::cout << "images successfully loaded" <<std::endl;
     // float a = 1.7922437549939767; // The whole materix N is not clear for me. 
     // float c = 25.97710530447917;
     int channels = 24;
@@ -144,6 +151,8 @@ void Calibration::withThreePlane(cv::Mat normals) {
                 cv::Vec3f I(plane1[i].at<uchar>(y,x),
                             plane2[i].at<uchar>(y,x),
                             plane3[i].at<uchar>(y,x));
+                std::cout << I << std::endl;
+                std::cout << Ninv << std::endl;
                 cv::Mat svec = Ninv * cv::Mat(I);
                 //cv::normalize(svec, svec);
                 /* offset: (row * numCols * numChannels) + (col * numChannels) + (channel) */

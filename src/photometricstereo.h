@@ -18,7 +18,7 @@
 #include "OpenCL/cl.hpp"
 #include "oclutils.h"
 #include "config.h"
-
+#include "modelwidget.h"
 class PhotometricStereo : public QObject {
 
     Q_OBJECT
@@ -32,7 +32,7 @@ public:
     float getMu();
     float getMinIntensity();
     float getUnsharpScale();
-    
+    void execute_new(std::map<int, cv::Mat> captured_images, cv::Mat ambient);
 public slots:
     void setImage(cv::Mat image);
     void setMaxPQ(double val);

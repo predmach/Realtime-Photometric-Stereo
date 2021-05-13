@@ -32,7 +32,7 @@
 #include <QFileDialog>
 #include <librealsense2/rs.hpp>
 #include "calibration.h"
-
+#include "photometricstereo.h"
 //#include "lights.h"
 
 class RsCam : public QObject {
@@ -58,13 +58,15 @@ public:
     int lighid = 0;
     bool save_masked = false;
     bool get_plane_normal = false;
-
-
+    double calibration_pattern_scale_{0.017}; //m
+    PhotometricStereo *ps;
+    bool save_screenshot = true;
 public slots:
     void start();
     void calibrate();
     void sendlight();
     void captureFrame();
+    //void captureFrame_new();
     void save_image();
     void save_mask();
     void test_get_normal();
@@ -92,14 +94,16 @@ private:
     bool saveimage = false;
     cv::Vec3i calibrationTarget;
     cv::Mat calibrationImages[8];
-
+    std::map < int, cv::Mat> captured_images;
+    std::map <int, cv::Mat> captured_diff;
     QTimer *lightTimer;
 //    Lights *lights;
     int currentLight=0;
-    int num_lights=77; //77;
+    int num_lights=105; //77;
 
     int numCams;
 
+    int light_id = 13;
 
     rs2::config m_cfg; // RealSense config
     rs2::pipeline m_pipe; // Stream processing
@@ -128,7 +132,8 @@ private:
 //    int camFrameWidth, camFrameHeight;
     
     void captureAmbientImage();
-
+    void captureAmbientImage_new();
+    void capture_calibration_images();
     /* Own implementation of sleep, processing all qt events while sleeping/waiting */
     void msleep(unsigned long msecs);
     

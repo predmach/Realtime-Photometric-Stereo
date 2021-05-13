@@ -138,7 +138,9 @@ void RsCam::start() {
 //    connect(this, SIGNAL(stopped()), eventLoopTimer, SLOT(stop()));
 //    eventLoopTimer->start(1000); ///m_fps);
     //screenshotwithLight();
+    //captureAmbientImage();
     QTimer::singleShot(200, this, &RsCam::captureFrame);
+    std::cout << "--------Capturing is done--------" << std::endl;
 }
 
 void RsCam::stop() {
@@ -161,12 +163,198 @@ int RsCam::avgImageIntensity() {
     return avgImgIntensity;
 }
 
+//------------------------------------------
+void RsCam::capture_calibration_images()
+{   
+    Size patternsize(7,4); //interior number of corners
+    vector<Point2f> corners; //this will be filled by the detected corners
+    
+    //lights_on();
+    rs2::frameset frames;
+    bool saved_ambient = true;
+    bool save_calibration_image = true;
+    for (int i=0; i<5; i++) 
+    {
+        frames = m_pipe.wait_for_frames();
+        msleep(250);
+    }
+    
+
+    std::map<int, std::vector<cv::Mat>> calibration_planes;
+    std::map<int, std::vector<cv::Mat>> diff_planes;
+    rs2::video_stream_profile rs_rgb_stream = m_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
+    cv::Vec3d point1(0, 0, 0);
+    cv::Vec3d point2(0, 0, 1);
+    cv::Vec3d normal_in_world =  point2 - point1;
+    Mat normal_planes;
+
+
+    cv::Mat calibration_camera_matrix;
+    cv::Mat calibration_distortion_coefficients;
+    cv::Mat calibration_rotation_vector;
+    cv::Mat calibration_translation_vector;
+    rs2::frame color_frame = frames.get_color_frame();
+    auto rgb_video_frame = color_frame.as<rs2::video_frame>();
+    const int rgb_width = rgb_video_frame.get_width();
+    const int rgb_height = rgb_video_frame.get_height();
+    rs2_intrinsics rs_rgb_instrinsics = rs_rgb_stream.get_intrinsics();
+
+    calibration_camera_matrix = (Mat_<double>(3,3) << rs_rgb_instrinsics.fx, 0, rs_rgb_instrinsics.ppx, 0, rs_rgb_instrinsics.fy, rs_rgb_instrinsics.ppy, 0, 0, 1);
+    calibration_distortion_coefficients = Mat::zeros(4, 1, DataType<double>::type);
+    std::vector<Point3d> target_corner_points_world_3D;
+                    for (int i = 0; i < patternsize.height; i++)
+                        for (int j = 0; j < patternsize.width; j++)
+                            target_corner_points_world_3D.push_back(
+                                        Point3d( i * calibration_pattern_scale_, j * calibration_pattern_scale_, 0 ));
+   
+    while (save_calibration_image) 
+    {
+       
+        lights_on();
+        msleep(5);
+        frames = m_pipe.wait_for_frames();
+        rs2::frame color_frame = frames.get_color_frame();
+        Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
+        Mat gray = Mat(color.rows, color.cols, CV_8UC1);
+        cv::cvtColor(color, gray, COLOR_RGB2GRAY);
+
+        if (saved_ambient == true)
+        {
+            imwrite("ambient.png", gray);
+            saved_ambient = false;
+
+        }
+
+        lights_off();
+        bool calculate_normal = true;
+        for (int i = 13; i < num_lights; i += 13)
+        {
+            //msleep(10);
+            std::cout << i <<std::endl;
+            lighting(i, 255);
+            
+            frames = m_pipe.wait_for_frames();
+            
+            color_frame = frames.get_color_frame();
+            Mat current_light_color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
+            Mat current_light_gray = Mat(color.rows, color.cols, CV_8UC1);
+            cv::cvtColor(current_light_color, current_light_gray, COLOR_RGB2GRAY);
+            //---------------------------------
+            Mat masked_image = gray.clone();
+            int all_three_planes = 0;
+            while (all_three_planes<3)
+            {
+                msleep(10);
+                bool pattern = findChessboardCorners(masked_image, patternsize, corners,
+                                   CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE
+                                   |CALIB_CB_FAST_CHECK);
+            
+                if (pattern)
+                {
+                    cornerSubPix(gray, corners, Size(11, 11), Size(-1, -1),
+                                TermCriteria(cv::TermCriteria::EPS + TermCriteria::MAX_ITER, 30, 0.1));
+
+
+                }else
+                {
+                    std::cout << "no pattern found" <<std::endl;
+                    break;
+                }
+                   
+
+                drawChessboardCorners(current_light_color, patternsize, Mat(corners), pattern);
+
+                //====================== Normal Calculation
+                
+                // if (corners.front().y > corners.back().y)
+                //     std::reverse(corners.begin(), corners.end());
+            
+                Point vertices[4];
+                vertices[0] = corners[0];
+                vertices[1] = corners[(patternsize.height-1)*patternsize.width];
+                vertices[2] = corners[(patternsize.height-1)*patternsize.width+(patternsize.width-1)];
+                vertices[3] = corners[patternsize.width-1];
+                cv::fillConvexPoly(masked_image, vertices, 4, Scalar(0,255,255));
+                cv::imshow("test" + std::to_string(all_three_planes), masked_image);
+                Mat currentplane;
+                Mat diff;
+                Mat mask(gray.size(), CV_8U, Scalar(0));
+                cv::fillConvexPoly(mask, vertices, 4, Scalar(255,255,255));
+                cv::bitwise_and(current_light_gray, mask, currentplane);
+                cv::bitwise_and(current_light_gray - gray, mask, diff);
+                //cv::imshow("curret masked" + std::to_string(all_three_planes), currentplane);
+                calibration_planes[all_three_planes].push_back(currentplane);
+                diff_planes[all_three_planes].push_back(diff);
+                all_three_planes = all_three_planes + 1;
+
+                if (calculate_normal)
+                {
+            
+
+                    bool found_pose = solvePnP(target_corner_points_world_3D, corners, calibration_camera_matrix, calibration_distortion_coefficients, calibration_rotation_vector, calibration_translation_vector);
+                    if (found_pose) 
+                    {
+                        Mat R;
+                        Rodrigues(calibration_rotation_vector, R); // Convert "rvec arg" m_calibration_rotation_vector to 3x3 rotation matrix R
+
+                        // BUILD WORLD TO CAMERA TRANSFORMATION MATRIX
+                        Mat w_M_c_ = Mat::eye(4, 4, R.type()); // M is 4x4
+                        w_M_c_( Range(0,3), Range(0,3) ) = R * 1; // copies R into M
+                        w_M_c_( Range(0,3), Range(3,4) ) = calibration_translation_vector * 1;
+                        
+                        cv::Mat normal_currentplane = R * Mat(normal_in_world);
+                        normal_planes.push_back(normal_currentplane);
+                    }
+
+                //======================
+                }
+            
+            }
+            std::cout << "masked are saved"<< std::endl;
+            calculate_normal = false;
+            //---------------------------------
+            // light_map[i] = current_light_color;
+            // std::string filename = "cap_test_light"+ std::to_string(i) + ".png";
+            // Mat diff = current_light_gray - gray;
+            // std::string filename1 = "cap_test_light_diff"+ std::to_string(i) + ".png";
+            // if (save_calibration_image)
+            // {
+            //     std::cout << "saving:-->>" <<std::endl;
+            //     imwrite(filename, current_light_gray);
+            //     imwrite(filename1, diff);
+            // }
+           
+            lights_off();
+            emit newCamFrame(current_light_color.clone());
+        }
+    
+        save_calibration_image = false;
+
+    }
+    std::cout << "Calibration Images Saved" << std::endl;
+    std::cout << calibration_planes[2].size() << std::endl;
+    for (int i = 0; i < calibration_planes[2].size(); i++)
+    {
+        cv::imshow("plane" , calibration_planes[2][i]);
+        cv::waitKey(200);
+
+    }
+
+    for (int i = 0; i < calibration_planes[2].size(); i++)
+    {
+        cv::imshow("diff plane", diff_planes[2][i]);
+        cv::waitKey(200);
+    }
+    Calibration::withThreePlane(normal_planes, calibration_planes);
+}
+
+//------------------------------------------
 void RsCam::captureAmbientImage() {
 
     rs2::frameset frames ;
 
     msleep(250);
-    lights_on();
+    lights_off();
     for (int i=0; i<5; i++) {
         frames = m_pipe.wait_for_frames();
         msleep(250);
@@ -184,6 +372,7 @@ void RsCam::captureAmbientImage() {
     std::vector<Mat> masked_images (0);
     Mat normal_planes;
     rs2::video_stream_profile rs_rgb_stream = m_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
+    
     while (c_min_d == MAXFLOAT) {
         frames = m_pipe.wait_for_frames();
         rs2::frame color_frame = frames.get_color_frame();
@@ -254,7 +443,7 @@ void RsCam::captureAmbientImage() {
             vertices[2] = corners[(patternsize.height-1)*patternsize.width+(patternsize.width-1)];
             vertices[3] = corners[patternsize.width-1];
             cv::fillConvexPoly(masked_image, vertices, 4, Scalar(255,255,255));
-            
+           
             if (masked_images.size() < 3)
             {
                 vertices[0] = corners[0];
@@ -271,7 +460,7 @@ void RsCam::captureAmbientImage() {
                 for (int i = 0; i < patternsize.height; i++)
                     for (int j = 0; j < patternsize.width; j++)
                         target_corner_points_world_3D.push_back(
-                                    Point3d( i * patternsize.height, j * patternsize.width, 0 ));
+                                    Point3d( i * calibration_pattern_scale_, j * calibration_pattern_scale_, 0 ));
 
                 
 
@@ -381,99 +570,161 @@ void RsCam::captureAmbientImage() {
     rs2::frame color_frame = frames.get_color_frame();
     Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
     cvtColor(color, ambientImage, COLOR_RGB2GRAY);
+    imwrite("ambient_hand.png", ambientImage);
+    //cv::imshow("test", ambientImage);
 
 }
-/*
-R = [0 0 1.0];
-Nx     =   px - xc;
-Ny     = -(py - yc);
-Nz     = sqrt( radius^2 - Nx^2 - Ny^2 );
-normal = [Nx, Ny, Nz];
-normal = normal/radius;
-NR     = normal(1)*R(1) + normal(2)*R(2) + normal(3)*R(3);
-L(i,:) = 2 * Nz * normal - R;
-*/
+void RsCam::captureAmbientImage_new()
+{
+    lights_off();
+    msleep(250);
+    rs2::frameset frames ;
+    for (int i=0; i<5; i++) {
+        frames = m_pipe.wait_for_frames();
+        msleep(250);
+    }
+
+    frames = m_pipe.wait_for_frames();
+    rs2::frame color_frame = frames.get_color_frame();
+    Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
+    cvtColor(color, ambientImage, COLOR_RGB2GRAY);
+    imwrite("ambient_hand.png", ambientImage);
+    avgImgIntensity = cv::mean(ambientImage)[0];
+
+}
 
 void RsCam::calibrate() {
     std::cout << "calibrate hit"<<std::endl;
     isCalibrating = true;
-    captureAmbientImage();
+    capture_calibration_images();
     isCalibrating = false;
-    QTimer::singleShot(20, this, &RsCam::captureFrame);
+    //QTimer::singleShot(20, this, &RsCam::captureFrame);
 }
 
-void RsCam::captureFrame() {
+
+// void RsCam::captureFrame() {
+    
+//     std::cout<< "capture frame" <<std::endl;
+//     if (isCalibrating)
+//         return;
+
+//     currentLight++;
+//     if (currentLight==num_lights)
+//         currentLight = 0;
+
+//     if (!has_ambient || currentLight==num_lights) {
+//         std::cout<< "taking ambient" <<std::endl;
+//         captureAmbientImage_new();
+//         has_ambient = true;
+//         currentLight = 0;
+//     }
+
+//     Mat camFrame(m_rgb_height, m_rgb_width, CV_8UC1);
+//     imgIdx = (imgIdx+1) % 8;
+
+//     if (testMode) {
+//         camFrame = testImages[imgIdx].clone();
+//         /* faking camera image acquisition time */
+//         eventLoopTimer->setInterval(1000/FRAME_RATE);
+//     } else {
+//         double total_lights = 104;
+//         double mid_strip = 52;
+//         int light_id = int( (total_lights-mid_strip)/2 + currentLight*(mid_strip/8));
+//         std::cout<< "light id" <<light_id<<std::endl;
+//         lighting(light_id, 255);
+//         msleep(20);
+//         rs2::frameset frames = m_pipe.wait_for_frames();
+//         lighting(light_id, 0);
+//         rs2::frame color_frame = frames.get_color_frame();
+//         Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
+//         cvtColor(color, camFrame, COLOR_RGB2GRAY);
+
+//         camFrame -= ambientImage;
+//         double minVal;
+//         double maxVal;
+//         Point minLoc;
+//         Point maxLoc;
+//         Point center = Point(calibrationTarget[0], calibrationTarget[1]);
+//         Mat mask = Mat::zeros(color.rows, color.cols, CV_8UC1);
+//         int radius = calibrationTarget[2];
+//         int target_radius = int(radius*0.65);
+//         Rect target_roi(center.x-target_radius,center.y-target_radius,target_radius*2,target_radius*2);
+//         rectangle(color, target_roi, Scalar(255,0,0));
+//         mask(target_roi) = 255;
+//         minMaxLoc( camFrame, &minVal, &maxVal, &minLoc, &maxLoc, mask );
+//         circle(color, maxLoc, 2, Scalar(255,0,0), 1);
+
+//         emit newCamFrame(color.clone());
+
+//         calibrationImages[currentLight] = camFrame;
+
+//     }
+
+void RsCam::captureFrame() 
+{
     
     std::cout<< "capture frame" <<std::endl;
     if (isCalibrating)
         return;
 
-    currentLight++;
-    if (currentLight==num_lights)
-        currentLight = 0;
-
     if (!has_ambient || currentLight==num_lights) {
         std::cout<< "taking ambient" <<std::endl;
-        captureAmbientImage();
+        captureAmbientImage_new();
         has_ambient = true;
         currentLight = 0;
     }
 
     Mat camFrame(m_rgb_height, m_rgb_width, CV_8UC1);
-    imgIdx = (imgIdx+1) % 8;
+
 
     if (testMode) {
         camFrame = testImages[imgIdx].clone();
         /* faking camera image acquisition time */
         eventLoopTimer->setInterval(1000/FRAME_RATE);
-    } else {
-        double total_lights = 120;
-        double mid_strip = 80;
-        int light_id = int( (total_lights-mid_strip)/2 + currentLight*(mid_strip/8));
+    } else 
+    {
+
+        if (light_id < num_lights)
+        {
+            std::cout << light_id << std::endl;
+            lighting(light_id, 255);
+            
+            msleep(20);
+            rs2::frameset frames = m_pipe.wait_for_frames();
+            rs2::frame color_frame = frames.get_color_frame();
+            Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
+            cvtColor(color, camFrame, COLOR_RGB2GRAY);
+
         
-        lighting(light_id, 255);
-        msleep(20);
-        rs2::frameset frames = m_pipe.wait_for_frames();
-        lighting(light_id, 0);
-        rs2::frame color_frame = frames.get_color_frame();
-        Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
-        cvtColor(color, camFrame, COLOR_RGB2GRAY);
+            emit newCamFrame(color.clone());
 
-        camFrame -= ambientImage;
-        double minVal;
-        double maxVal;
-        Point minLoc;
-        Point maxLoc;
-        Point center = Point(calibrationTarget[0], calibrationTarget[1]);
-        Mat mask = Mat::zeros(color.rows, color.cols, CV_8UC1);
-        int radius = calibrationTarget[2];
-        int target_radius = int(radius*0.65);
-        Rect target_roi(center.x-target_radius,center.y-target_radius,target_radius*2,target_radius*2);
-        rectangle(color, target_roi, Scalar(255,0,0));
-        mask(target_roi) = 255;
-        minMaxLoc( camFrame, &minVal, &maxVal, &minLoc, &maxLoc, mask );
-        circle(color, maxLoc, 2, Scalar(255,0,0), 1);
-
-        emit newCamFrame(color.clone());
-
-        calibrationImages[currentLight] = camFrame;
-
-    }
-    
-//    msleep(1000);
-//    eventLoopTimer->start(500);
-//    eventLoopTimer = QTimer::singleShot(200, this, &RsCam::captureFrame);
-    // emit newCamFrame(ambientImage.clone());
-    
-    /* remove ambient light */
-//     camFrame -= ambientImage;
-//     emit newCamFrame(camFrame.clone());
-
-    /* assigning image id (current active LED) to pixel in 0,0 */
-    // camFrame.at<uchar>(0, 0) = imgIdx;
-    
-    QTimer::singleShot(20, this, &RsCam::captureFrame);
-    // emit camFrame;
+            captured_images[light_id] = camFrame;
+            
+            camFrame -= ambientImage;
+            captured_diff[light_id] = camFrame;
+            if (save_screenshot)
+            {
+                imwrite("capture" + std::to_string(light_id) + ".png", camFrame);
+                imwrite("capture_diff" + std::to_string(light_id) + ".png", camFrame);
+                
+            }
+            
+            light_id = light_id + 13;
+            QTimer::singleShot(20, this, &RsCam::captureFrame);
+            lights_off();
+            
+        }
+        else
+        {
+            std::cout << "capturing is done" <<std::endl;
+            save_screenshot = false;
+            ps = new PhotometricStereo(m_rgb_width, m_rgb_height, avgImageIntensity());
+            ps->execute_new(captured_diff, ambientImage);
+            light_id = 13;
+            QTimer::singleShot(20, this, &RsCam::captureFrame);
+        }
+    }   
+       
 }
 
 void RsCam::msleep(unsigned long msecs) {

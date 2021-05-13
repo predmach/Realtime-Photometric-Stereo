@@ -11,12 +11,13 @@
 
 #include "config.h"
 #include <fstream>
+#include <map>
 
 class Calibration {
   
 public:
     static void withFourPlanes();
-    static void withThreePlane(cv::Mat normals);
+    static void withThreePlane(cv::Mat normals, std::map<int, std::vector<cv::Mat>> calibration_planes);
     static void get_plane_normals(cv::Mat normals);
     bool saveMatBinary(const std::string& filename, const cv::Mat& mat);
     bool writeMatBinary(std::ofstream& ofs, const cv::Mat& out_mat);
