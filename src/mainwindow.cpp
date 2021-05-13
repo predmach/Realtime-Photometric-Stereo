@@ -38,8 +38,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     /* connecting camera with camerawidget and ps process */
     connect(camera, SIGNAL(newCamFrame(cv::Mat)), camWidget, SLOT(setImage(cv::Mat)), Qt::AutoConnection);
     /* invoking ps setImage slot immediately, when the signal is emitted to ensure image order */
-//    connect(camera, SIGNAL(newCroppedFrame(cv::Mat)), ps, SLOT(setImage(cv::Mat)), Qt::DirectConnection);
-    
+    connect(camera, SIGNAL(newCroppedFrame(cv::Mat)), ps, SLOT(setImage(cv::Mat)), Qt::DirectConnection);
+    connect(camera, SIGNAL(newFrames(std::map<int, cv::Mat>)), ps, SLOT(setImages(std::map<int, cv::Mat>)), Qt::DirectConnection);
     /* connecting ps process with mainwindow and modelwidget */
     connect(ps, SIGNAL(executionTime(QString)), this, SLOT(setStatusMessage(QString)), Qt::AutoConnection);
     connect(ps, SIGNAL(modelFinished(std::vector<cv::Mat>)), this, SLOT(onModelFinished(std::vector<cv::Mat>)), Qt::DirectConnection);

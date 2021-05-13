@@ -40,6 +40,7 @@ public slots:
     void setMu(double val);
     void setMinIntensity(int val);
     void setUnsharpScale(int val);
+    void setImages(std::map<int, cv::Mat> images);
     
 signals:
     void executionTime(QString timeMillis);

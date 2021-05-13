@@ -712,14 +712,15 @@ void RsCam::captureFrame()
             light_id = light_id + 13;
             QTimer::singleShot(20, this, &RsCam::captureFrame);
             lights_off();
-            
+            //
         }
         else
         {
             std::cout << "capturing is done" <<std::endl;
             save_screenshot = false;
-            ps = new PhotometricStereo(m_rgb_width, m_rgb_height, avgImageIntensity());
-            ps->execute_new(captured_diff, ambientImage);
+            // ps = new PhotometricStereo(m_rgb_width, m_rgb_height, avgImageIntensity());
+            // ps->execute_new(captured_diff, ambientImage);
+            emit newFrames(captured_diff);
             light_id = 13;
             QTimer::singleShot(20, this, &RsCam::captureFrame);
         }

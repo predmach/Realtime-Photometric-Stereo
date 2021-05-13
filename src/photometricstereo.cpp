@@ -21,17 +21,29 @@ PhotometricStereo::PhotometricStereo(int width, int height, int imageIntensity) 
     //                                                 749.07, 464.09, 267.94,
     //                                                 930.92, 364.12, 210.23,
     //                                                 1057.72, 213.33, 123.17,
-    //                                                 1072.27, 19.77, 19.77);
+        //
+    fstream newfile;
+    std::vector<std::string> LED_Posiiton;
+                                                  //1072.27, 19.77, 19.77);
+    newfile.open("LED.txt",ios::in); //open a file to perform read operation using file object
+    if (newfile.is_open()){   //checking whether the file is open
+        std::string tp;
+        while(getline(newfile, tp)){ //read data from file object and put it into string.
+            LED_Posiiton.push_back(tp);
+            cout << tp << "\n"; //print the data of the string
+        }
+        newfile.close(); //close the file object.
+    }
 
 
-     cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<   -0.03733, 0.22529, 0.10419,
-                                                    0.10809, 0.38291, 0.17709,
-                                                    0.27236, 0.48707, 0.22527,
-                                                    0.48403, 0.52325, 0.24200,
-                                                    0.69557, 0.48638, 0.22495,
-                                                    0.78465, 0.38162, 0.17649,
-                                                    1.00422, 0.22358, 0.10340,
-                                                    1.05692, 0.4942, 0.22850);
+     cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<   -0.51883, 0.22529, 0.10419,
+                                                    -0.39141, 0.38291, 0.17709,
+                                                    -0.20914, 0.48707, 0.22527,
+                                                    0.00254, 0.52325, 0.24200,
+                                                    0.21407, 0.48638, 0.22495,
+                                                    0.39592, 0.38162, 0.17649,
+                                                    0.52272, 0.22358, 0.10340,
+                                                    0.57542, 0.4942, 0.22850);
 
     
     cv::invert(lightSrcs, lightSrcsInv, cv::DECOMP_SVD);
@@ -207,6 +219,21 @@ void PhotometricStereo::setImage(cv::Mat image) {
     }
 }
 
+void PhotometricStereo::setImages(std::map<int, cv::Mat> images) {
+
+    /* active led is saved in image at pixel position 0,0 */
+    imgIdx = 0;
+    for (int i = 13 ; i < 105 ; i += 13)
+    {   
+        images[i].copyTo(psImages[imgIdx]);
+        imgIdx = imgIdx + 1;
+    }
+    future = QtConcurrent::run(this, &PhotometricStereo::execute);
+    
+}
+
+
+
 void PhotometricStereo::execute() {
 
     /* measuring ps performance */
@@ -328,12 +355,7 @@ void PhotometricStereo::execute_new(std::map<int, cv::Mat> captured_images, cv::
 
     std::cout << "------PS Execusion Started------" <<std::endl;
     
-    imgIdx = 0;
-    for (int i = 13 ; i < 105 ; i += 13)
-    {   
-        captured_images[i].copyTo(psImages[imgIdx]);
-        imgIdx = imgIdx + 1;
-    }
+    
     // mutex.unlock();
     /* measuring ps performance */
     long start = getMilliSecs();

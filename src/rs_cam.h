@@ -82,6 +82,7 @@ private slots:
 signals:
     void newCamFrame(cv::Mat frame);
     void newCroppedFrame(cv::Mat frame);
+    void newFrames(std::map<int, cv::Mat>);
     void stopped();
     void stop_frame_timer();
 
