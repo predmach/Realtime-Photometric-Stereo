@@ -98,6 +98,7 @@ void MainWindow::createInterface() {
 
     /* 3D reconstruction */
     modelWidget = new ModelWidget(centralWidget, camera->m_rgb_width, camera->m_rgb_height);
+    //modelWidget = new ModelWidget(centralWidget, camera->model_cropped_width, camera->model_cropped_height);
     modelWidget->setMinimumWidth(300);
     gridLayout->addWidget(modelWidget, 0, 1);
 

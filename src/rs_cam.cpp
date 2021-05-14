@@ -720,47 +720,13 @@ void RsCam::captureFrame()
         currentLight = 0;
     }
 
-    // if (cropped_need)
-    // {
-    //     set_width_height();
-    //     cropped_need = false;
-    //     // rs2::frameset frames;
-    //     // for (int i=0; i<5; i++) 
-    //     // {
-    //     //     frames = m_pipe.wait_for_frames();
-    //     //     msleep(250);
-    //     // }
-    //     // rs2::frame color_frame = frames.get_color_frame();
-    //     // Mat color(Size(m_rgb_width, m_rgb_height), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
-    //     // Mat grey;
-    //     // cvtColor(color, grey, COLOR_RGB2GRAY);
-    //     // namedWindow(WINDOW_NAME);
-	//     // Mat tempImage;
-    //     // setMouseCallback(WINDOW_NAME, on_MouseHandle, (void*) &grey);
-        
-	//     // while (1) {
-    //     //     color.copyTo(tempImage);
-            
-    //     //     if (g_bDrawingBox)
-    //     //         DrawRectangle(tempImage, g_rectangle);
-    //     //     imshow(WINDOW_NAME, tempImage);
-    //     //     //char c = getchar();
-
-    //     //     if (complete_rect==false)  // stop drawing rectanglge if the key is 'ESC'
-    //     //         break;
-
-	//     // }
-    //     // cropped_rect = g_rectangle;
-    //     // if (!complete_rect)
-    //     // {
-    //     //     cv::Mat croppedImage = color(cropped_rect);
-    //     //     cv::imshow("cropped", croppedImage);
-    //     //     cropped_need = false;
-    //     //     //cv::destroyAllWindows();
-    //     // }
-        
-        
-    // }
+    if (cropped_need)
+    {
+        set_width_height();
+        cv::Mat ambientImage_cropped =  ambientImage(cropped_rect);
+        avgImgIntensity = cv::mean(ambientImage_cropped)[0];
+        cropped_need = false;
+    }
     Mat camFrame(m_rgb_height, m_rgb_width, CV_8UC1);
 
 
@@ -786,11 +752,11 @@ void RsCam::captureFrame()
         
             emit newCamFrame(color.clone());
 
-            captured_images[light_id] = camFrame;
-            //captured_images[light_id]= camFrame(cropped_rect);
+            //captured_images[light_id] = camFrame;
+            captured_images[light_id]= camFrame(cropped_rect);
             camFrame -= ambientImage;
-            captured_diff[light_id] = camFrame;
-            //captured_diff[light_id] = camFrame(cropped_rect);
+            //captured_diff[light_id] = camFrame;
+            captured_diff[light_id] = camFrame(cropped_rect);
             if (save_screenshot)
             {
                 imwrite("capture" + std::to_string(light_id) + ".png", camFrame);
@@ -914,7 +880,7 @@ void RsCam::on_MouseHandle(int event, int x, int y, int flags, void* param) {
 		if (g_bDrawingBox) {
 			g_rectangle.width = x - g_rectangle.x;
 			g_rectangle.height = y - g_rectangle.y;
-            std::cout << "Rectangle continues: " << g_rectangle << std::endl;
+            //std::cout << "Rectangle continues: " << g_rectangle << std::endl;
 			DrawRectangle(image, g_rectangle);
             
 		}
@@ -924,7 +890,7 @@ void RsCam::on_MouseHandle(int event, int x, int y, int flags, void* param) {
 		                       //get the starting corner's coordinates of the rectangle
 		g_bDrawingBox = true;
 		g_rectangle = Rect(x, y, 0, 0);
-        std::cout << "Rectangle start: " << g_rectangle << std::endl;
+        //std::cout << "Rectangle start: " << g_rectangle << std::endl;
 	}
 		break;
 	case EVENT_LBUTTONUP: {   //when the left mouse button is released,

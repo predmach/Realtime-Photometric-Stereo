@@ -261,6 +261,9 @@ void PhotometricStereo::setImages(std::map<int, cv::Mat> images) {
 
 void PhotometricStereo::execute() {
 
+    height = height_new;
+    width = width_new;
+    minIntensity = minIntensity_new;
     /* measuring ps performance */
     long start = getMilliSecs();
 
@@ -546,77 +549,9 @@ cv::Mat PhotometricStereo::getGlobalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
 }
 void PhotometricStereo::setScale(int width, int height, int imageIntensity) 
 {
-    
-    /* setup pre calibrated global light sources */
-    // cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<    -0.2222,  0.0074, 0.9749,
-    //                                                 -0.1629, -0.1407, 0.9765,
-    //                                                  0.0370, -0.2000, 0.9790,
-    //                                                  0.1481, -0.1407, 0.9789,
-    //                                                  0.2222,  0.0296, 0.9745,
-    //                                                  0.1333,  0.1481, 0.9799,
-    //                                                 -0.0222,  0.2000, 0.9795,
-    //                                                 -0.1555,  0.1481, 0.9766);
-
-    
-    //  /* setup pre calibrated global light sources */
-    // cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<    16.17, 214.96, 124.11,
-    //                                                 143.59, 365.35, 210.94,
-    //                                                 325.86, 467.75, 268.32,
-    //                                                 537.54, 499.26, 288.25,
-    //                                                 749.07, 464.09, 267.94,
-    //                                                 930.92, 364.12, 210.23,
-    //                                                 1057.72, 213.33, 123.17,
-        //
-    fstream newfile;
-    std::vector<std::string> LED_Posiiton_str;
-                                                  //1072.27, 19.77, 19.77);
-    newfile.open("LED.txt",ios::in); //open a file to perform read operation using file object
-    if (newfile.is_open()){   //checking whether the file is open
-        std::string tp;
-        while(getline(newfile, tp)){ //read data from file object and put it into string.
-            LED_Posiiton_str.push_back(tp);
-            //cout << tp << "\n"; //print the data of the string
-        }
-        newfile.close(); //close the file object.
-    }
-   
-    std::vector <std::vector <double>> LED_P;
-    for (int i = 0; i < LED_Posiiton_str.size(); i++)
-    {   
-        std::stringstream ss(LED_Posiiton_str[i]);
-
-        double x; ss >> x;   
-        double y; ss >> y;  
-        double z; ss >> z;   
-
-        x = (x - 535.0)/1000;
-        y = y /1000;
-        z = z / 1000;
-        std::vector <double> current {x, y, z};
-        LED_P.push_back(current);
-
-    }
-    
-    // cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<   -0.51883, 0.22529, 0.10419,
-    //                                                 -0.39141, 0.38291, 0.17709,
-    //                                                 -0.20914, 0.48707, 0.22527,
-    //                                                 0.00254, 0.52325, 0.24200,
-    //                                                 0.21407, 0.48638, 0.22495,
-    //                                                 0.39592, 0.38162, 0.17649,
-    //                                                 0.52272, 0.22358, 0.10340,
-    //                                                 0.57542, 0.4942, 0.22850);
-
-    cv::Mat lightSrcs = (cv::Mat_<float>(8,3) <<   LED_P[light_id[0]][0], LED_P[light_id[0]][1], LED_P[light_id[0]][2],
-                                                   LED_P[light_id[1]][0], LED_P[light_id[1]][1], LED_P[light_id[1]][2],
-                                                   LED_P[light_id[2]][0], LED_P[light_id[2]][1], LED_P[light_id[2]][2],
-                                                   LED_P[light_id[3]][0], LED_P[light_id[3]][1], LED_P[light_id[3]][2],
-                                                   LED_P[light_id[4]][0], LED_P[light_id[4]][1], LED_P[light_id[4]][2],
-                                                   LED_P[light_id[5]][0], LED_P[light_id[5]][1], LED_P[light_id[5]][2],
-                                                   LED_P[light_id[6]][0], LED_P[light_id[6]][1], LED_P[light_id[6]][2],
-                                                   LED_P[light_id[7]][0], LED_P[light_id[7]][1], LED_P[light_id[7]][2]);
-    cout << "Light Location = " << endl << " "  << lightSrcs << endl << endl;
-    cv::invert(lightSrcs, lightSrcsInv, cv::DECOMP_SVD);
-
+    width_new = width;
+    height_new = height;
+    minIntensity_new = imageIntensity;
     /* initialize non-changing x,y coords of 3d model */
     XCoords = cv::Mat(height, width, CV_32F, cv::Scalar::all(0));
     YCoords = cv::Mat(height, width, CV_32F, cv::Scalar::all(0));

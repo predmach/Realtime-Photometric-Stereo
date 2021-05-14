@@ -79,7 +79,7 @@ private:
     
     /* model size */
     int width, height;
-    
+    int width_new, height_new, minIntensity_new;
     /* non-changing x,y coordinates of 3d model */
     cv::Mat XCoords, YCoords;
     
