@@ -17,13 +17,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
         camera->reset();
         // camera->printStatus();
     }
-    
+    //camera->set_width_height();
     camThread = new QThread;
     camera->moveToThread(camThread);
         
     /* creating photometric stereo process */
+   
     ps = new PhotometricStereo(camera->m_rgb_width, camera->m_rgb_height, camera->avgImageIntensity());
-
     /* setup ui */
     setWindowTitle("Realtime Photometric-Stereo");
     createInterface();
@@ -35,11 +35,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     connect(camera, SIGNAL(stopped()), camera, SLOT(deleteLater()));
     connect(camThread, SIGNAL(finished()), camThread, SLOT(deleteLater()));
     
+    
     /* connecting camera with camerawidget and ps process */
     connect(camera, SIGNAL(newCamFrame(cv::Mat)), camWidget, SLOT(setImage(cv::Mat)), Qt::AutoConnection);
     /* invoking ps setImage slot immediately, when the signal is emitted to ensure image order */
     connect(camera, SIGNAL(newCroppedFrame(cv::Mat)), ps, SLOT(setImage(cv::Mat)), Qt::DirectConnection);
     connect(camera, SIGNAL(newFrames(std::map<int, cv::Mat>)), ps, SLOT(setImages(std::map<int, cv::Mat>)), Qt::DirectConnection);
+    connect(camera, SIGNAL(newScale(int, int, int)), ps, SLOT(setScale(int, int,int)), Qt::DirectConnection);
     /* connecting ps process with mainwindow and modelwidget */
     connect(ps, SIGNAL(executionTime(QString)), this, SLOT(setStatusMessage(QString)), Qt::AutoConnection);
     connect(ps, SIGNAL(modelFinished(std::vector<cv::Mat>)), this, SLOT(onModelFinished(std::vector<cv::Mat>)), Qt::DirectConnection);

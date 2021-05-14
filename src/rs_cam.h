@@ -49,11 +49,13 @@ public:
     bool inTestMode();
 
     void lighting(int number, int intensity, int duration=-1);
-
+    void set_width_height();
     int m_rgb_width;
     int m_rgb_height;
     int m_depth_width;
     int m_depth_height;
+    int model_cropped_width;
+    int model_cropped_height;
     int m_fps;
     int lighid = 0;
     bool save_masked = false;
@@ -83,6 +85,7 @@ signals:
     void newCamFrame(cv::Mat frame);
     void newCroppedFrame(cv::Mat frame);
     void newFrames(std::map<int, cv::Mat>);
+    void newScale(int, int, int);
     void stopped();
     void stop_frame_timer();
 
@@ -105,7 +108,8 @@ private:
     int numCams;
 
     int light_id = 13;
-
+    int id = 0;
+    std::vector<int> light_idx {20, 60, 70, 80, 120, 140, 160, 180};
     rs2::config m_cfg; // RealSense config
     rs2::pipeline m_pipe; // Stream processing
     rs2::pipeline_profile m_profile;
@@ -137,6 +141,12 @@ private:
     void capture_calibration_images();
     /* Own implementation of sleep, processing all qt events while sleeping/waiting */
     void msleep(unsigned long msecs);
+    cv::Rect cropped_rect;
+   
+    static void on_MouseHandle(int event, int x, int y, int flags, void* param);
+    static void DrawRectangle(cv::Mat& img, cv::Rect box);
+    
+    bool cropped_need = true;
     
 };
 

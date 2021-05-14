@@ -41,6 +41,7 @@ public slots:
     void setMinIntensity(int val);
     void setUnsharpScale(int val);
     void setImages(std::map<int, cv::Mat> images);
+    void setScale(int width, int height, int imageIntensity);
     
 signals:
     void executionTime(QString timeMillis);
@@ -53,7 +54,7 @@ private:
     cl::Context context;
     cl::CommandQueue queue;
     cl::Kernel calcNormKernel, integKernel, updateNormKernel;
-    
+    std::vector<int> light_id {20, 60, 70, 80, 120, 140, 160, 180};
     /* opencl buffer */
     cl::Image2D cl_img1, cl_img2, cl_img3, cl_img4, cl_img5, cl_img6, cl_img7, cl_img8;
     cl::Buffer cl_Pgrads, cl_Qgrads;
